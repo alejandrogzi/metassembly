@@ -1,0 +1,7 @@
+name: filter_junctions
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - gawk=5.1.0
