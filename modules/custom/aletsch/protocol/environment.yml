@@ -1,7 +1,0 @@
-name: aletsch
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-dependencies:
-  - aletsch=1.1.3
