@@ -11,7 +11,8 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
-from typing import Final, Sequence
+from _collections_abc import Sequence
+from typing import Final, Any, Union
 
 __author__ = "Alejandro Gonzales-Irribarren"
 __email__ = "alejandrxgzi@gmail.com"
@@ -349,7 +350,7 @@ class SplitArgsAction(argparse.Action):
         parser: argparse.ArgumentParser,
         namespace: argparse.Namespace,
         values: str,
-        option_string: str | None = None,
+        option_string: Union[str, Sequence[Any], None] = None,
     ) -> None:
         """Split comma-separated string into list."""
         setattr(namespace, self.dest, values.split(","))
