@@ -1,0 +1,9 @@
+{
+  "channels": [
+    "https://conda.anaconda.org/bioconda/",
+    "https://conda.anaconda.org/conda-forge/"
+  ],
+  "home": "https://github.com/Shao-Group/beaver",
+  "license": "BSD-3-Clause",
+  "summary": "Beaver RNA-seq assembler"
+}
