@@ -1,0 +1,5 @@
+name: beaver
+channels:
+  - file:///home/alejandro/Documents/projects/metassembly/modules/custom/beaver/run/output/
+dependencies:
+  - beaver=0.0.1

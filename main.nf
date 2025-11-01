@@ -10,6 +10,7 @@ include { PREPARE_INDEXES } from './subworkflows/prepare_indexes/main'
 include { PREPROCESS_READS } from './subworkflows/preprocess_reads/main'
 include { STAR_ALIGNMENT } from './subworkflows/star_alignment/main'
 include { ALETSCH } from './modules/custom/aletsch/run/main'
+include { BEAVER } from './modules/custom/beaver/run/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,6 +69,14 @@ workflow METASSEMBLE {
 
         ch_aletsch = ALETSCH(
             ch_alignment.bams
+        )
+
+        ch_aletsch_gtfs = ch_aletsch.gtf
+            .map { meta, gtf -> gtf }
+            .collect()
+
+        BEAVER(
+            ch_aletsch_gtfs
         )
 
         // Create channel with original input info and BAM paths
