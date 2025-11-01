@@ -1,0 +1,49 @@
+package:
+  name: "beaver"
+  version: "0.0.1"
+
+source:
+  git: https://github.com/Shao-Group/beaver.git
+  rev: master
+
+build:
+  number: 0
+  script:
+    - aclocal
+    - autoconf
+    - autoheader
+    - automake -a
+    - ./configure --prefix=$PREFIX
+    - make
+    - mkdir -p $PREFIX/bin
+    - cp src/beaver $PREFIX/bin/
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
+    - autoconf
+    - automake
+    - make
+  host:
+    - boost-cpp
+    - htslib
+  run:
+    - boost-cpp
+    - htslib
+
+tests:
+  - script:
+    - beaver
+
+about:
+  homepage: https://github.com/Shao-Group/beaver
+  license: BSD-3-Clause # Check actual license
+  summary: Beaver RNA-seq assembler
+
+extra:
+  # additional-platforms:
+  #   - linux-aarch64
+  #   - osx-arm64
+  recipe-maintainers:
+    - alejandrogzi
