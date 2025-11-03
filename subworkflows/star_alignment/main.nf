@@ -1,6 +1,18 @@
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    IMPORT LOCAL MODULES/SUBWORKFLOWS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
 include { STAR_ALIGN as STAR_ALIGN_1PASS } from '../../modules/nf-core/star/align/main'
 include { STAR_ALIGN as STAR_ALIGN_2PASS } from '../../modules/nf-core/star/align/main'
 include { JOIN_JUNCTIONS } from '../../modules/custom/junctions/main'
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    WORKFLOW
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
 
 workflow STAR_ALIGNMENT {
     take:
@@ -107,6 +119,12 @@ workflow STAR_ALIGNMENT {
         percent_mapped = ch_log_final.map { meta, log -> [ meta, getStarPercentMapped(params, log) ] }
         versions = ch_versions // channel: [ versions.yml ]
 }
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
 
 //
 // Function that parses and returns the alignment rate from the STAR log output

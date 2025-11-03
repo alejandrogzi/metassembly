@@ -9,8 +9,7 @@
 include { PREPARE_INDEXES } from './subworkflows/prepare_indexes/main'
 include { PREPROCESS_READS } from './subworkflows/preprocess_reads/main'
 include { STAR_ALIGNMENT } from './subworkflows/star_alignment/main'
-include { ALETSCH } from './modules/custom/aletsch/run/main'
-include { BEAVER } from './modules/custom/beaver/run/main'
+include { ASSEMBLY } from './subworkflows/assembly/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -67,28 +66,22 @@ workflow METASSEMBLE {
             ch_indexes.star_gtf
         )
 
-        ch_aletsch = ALETSCH(
+        ch_beaver = ASSEMBLY(
             ch_alignment.bams
-        )
-
-        ch_aletsch_gtfs = ch_aletsch.gtf
-            .map { meta, gtf -> gtf }
-            .collect()
-
-        BEAVER(
-            ch_aletsch_gtfs
         )
 
         // Create channel with original input info and BAM paths
         // ch_alignment.bams.map { meta, reads, bai -> [ meta.id, meta, reads, bai ] }
         //     .join(ch_alignment.percent_mapped)
+        //     .join(ch_processed_reads.deacon_discarded_seqs)
         //     .transpose()
-        //     .map { id, bam_meta, reads, meta, percent_mapped ->
+        //     .map { id, bam_meta, reads, meta, percent_mapped, deacon_stats ->
         //         def fastq_1 = reads[0].toUriString()
         //         def fastq_2 = reads.size() > 1 ? reads[1].toUriString() : ''
         //         def mapped = percent_mapped != null ? percent_mapped : ''
+        //         def deacon_stats = deacon_stats != null ? deacon_stats : ''
 
-        //         return "${meta.id},${fastq_1},${fastq_2},${mapped}"
+        //         return "${meta.id},${fastq_1},${fastq_2},${mapped},${deacon_stats}"
         //     }
         //     .collectFile(
         //         name: 'samplesheet_with_bams.csv',
