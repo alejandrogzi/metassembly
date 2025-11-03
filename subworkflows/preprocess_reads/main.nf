@@ -33,12 +33,14 @@ workflow PREPROCESS_READS {
         ch_versions = Channel.empty()
         ch_linting_logs = Channel.empty()
 
-        // FQ_LINT_AT_START(
-        //     fastqs
-        // )
+        if (!params.fq_skip_linting_at_start) {
+            FQ_LINT_AT_START(
+                fastqs
+            )
 
-        // ch_versions = ch_versions.mix(FQ_LINT_AT_START.out.versions)
-        // ch_linting_logs = ch_linting_logs.mix(FQ_LINT_AT_START.out.lint)
+            ch_versions = ch_versions.mix(FQ_LINT_AT_START.out.versions)
+            ch_linting_logs = ch_linting_logs.mix(FQ_LINT_AT_START.out.lint)
+        }
 
         FASTP(
             fastqs,
@@ -71,12 +73,14 @@ workflow PREPROCESS_READS {
             .map { meta, json -> [meta, getFastpAdapterSequence(json)] }
             .set { ch_adapter_seq }
 
-        // FQ_LINT_AFTER_TRIMMING(
-        //     ch_trimmed_reads
-        // )
+        if (!params.fq_skip_linting_after_trimming) {
+            FQ_LINT_AFTER_TRIMMING(
+                ch_trimmed_reads
+            )
 
-        // ch_versions = ch_versions.mix(FQ_LINT_AFTER_TRIMMING.out.versions)
-        // ch_linting_logs = ch_linting_logs.mix(FQ_LINT_AFTER_TRIMMING.out.lint)
+            ch_versions = ch_versions.mix(FQ_LINT_AFTER_TRIMMING.out.versions)
+            ch_linting_logs = ch_linting_logs.mix(FQ_LINT_AFTER_TRIMMING.out.lint)
+        }
 
         ch_deacon_out = DEACON_FILTER(
             ch_trimmed_reads,
@@ -90,12 +94,14 @@ workflow PREPROCESS_READS {
             .map { meta, log -> [meta, getDeaconRetainedPercent(log)] }
             .set { ch_deacon_discarded_seqs }
 
-        // FQ_LINT_AFTER_DECONTAMINATION(
-        //     ch_deacon_out.reads
-        // )
+        if (!params.fq_skip_linting_after_deacon) {
+            FQ_LINT_AFTER_DECONTAMINATION(
+                ch_deacon_out.reads
+            )
 
-        // ch_versions = ch_versions.mix(FQ_LINT_AFTER_DECONTAMINATION.out.versions)
-        // ch_linting_logs = ch_linting_logs.mix(FQ_LINT_AFTER_DECONTAMINATION.out.lint)
+            ch_versions = ch_versions.mix(FQ_LINT_AFTER_DECONTAMINATION.out.versions)
+            ch_linting_logs = ch_linting_logs.mix(FQ_LINT_AFTER_DECONTAMINATION.out.lint)
+        }
 
     emit:
         processed_reads = ch_deacon_out.reads
