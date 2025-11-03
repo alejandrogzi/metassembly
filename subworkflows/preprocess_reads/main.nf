@@ -85,6 +85,11 @@ workflow PREPROCESS_READS {
 
         ch_versions = ch_versions.mix(DEACON_FILTER.out.versions)
 
+        ch_deacon_log = DEACON_FILTER.out.log
+        ch_deacon_log
+            .map { meta, log -> [meta, getDeaconRetainedPercent(log)] }
+            .set { ch_deacon_discarded_seqs }
+
         // FQ_LINT_AFTER_DECONTAMINATION(
         //     ch_deacon_out.reads
         // )
@@ -97,6 +102,7 @@ workflow PREPROCESS_READS {
         adapter_seq = ch_adapter_seq
         lint_logs = ch_linting_logs
         num_trimmed_reads = trim_read_count
+        deacon_discarded_seqs = ch_deacon_discarded_seqs
         versions = ch_versions
 }
 
@@ -121,4 +127,21 @@ def getFastpAdapterSequence(json_file) {
     } catch (Exception ex) {
         return ""
     }
+}
+
+//
+// Function that parses and returns the retained sequence percentage from Deacon log output
+//
+def getDeaconRetainedPercent(params, deacon_log) {
+    def retained_percent = 0
+    def pattern = /Retained\s+\d+\/\d+\s+sequences\s+\(([\d\.]+)%\)/
+
+    deacon_log.eachLine { line ->
+        def matcher = line =~ pattern
+        if (matcher) {
+            retained_percent = matcher[0][1].toFloat()
+        }
+    }
+
+    return retained_percent
 }

@@ -13,6 +13,7 @@ process DEACON_FILTER {
 
     output:
     tuple val(meta), path("*.deacon.fastq.gz"), emit: reads
+    tuple val(meta1), path("*.deacon.log")     , emit: log
     path "versions.yml"           , emit: versions
 
     when:
@@ -31,7 +32,8 @@ process DEACON_FILTER {
         $out_fq2 \\
         $args \\
         $index \\
-        $reads
+        $reads \\
+        > ${prefix}.deacon.log 2>&1
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -45,6 +47,7 @@ process DEACON_FILTER {
     touch ${prefix}.idx
     touch ${prefix}_1.deacon.fastq.gz
     touch ${prefix}_2.deacon.fastq.gz
+    touch ${prefix}.deacon.log
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
