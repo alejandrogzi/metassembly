@@ -10,18 +10,21 @@
       "depends": [
         "boost-cpp",
         "htslib",
+        "__glibc >=2.34,<3.0.a0",
+        "libgcc >=15",
         "libstdcxx >=15",
         "libgcc >=15",
+        "__glibc >=2.34,<3.0.a0",
         "htslib >=1.9,<1.10.0a0"
       ],
       "legacy_bz2_md5": null,
       "license": "BSD-3-Clause",
-      "md5": "124e2e9d8945fa9b5baff06bb24f9c10",
+      "md5": "6f528e685befe1b802e86093cf045510",
       "name": "beaver",
-      "sha256": "ceed184c0129db1e43ffcd8e29fe33a0934b09c5ac1290ba3b68e6a688357c09",
-      "size": 115848,
+      "sha256": "457ae3d01a522a4769a4d1415b4ce50dd0b5ac50397fc230c9a97b05a1b0b6e8",
+      "size": 115877,
       "subdir": "linux-64",
-      "timestamp": 1761955515644,
+      "timestamp": 1762095398118,
       "version": "0.0.1"
     }
   },
