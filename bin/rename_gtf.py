@@ -17,11 +17,11 @@ def run(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         Parsed command-line arguments.
     """
-    with open(args.gtf) as f:
+    with open(args.gtf, "r") as f:
         with open(args.output, "w") as out:
             for line in f:
                 if line.startswith("#"):
-                    out.write(line)
+                    _ = out.write(line)
                     continue
                 fields = line.strip().split("\t")
                 if len(fields) < 8:
@@ -33,11 +33,12 @@ def run(args: argparse.Namespace) -> None:
                     if len(attr.strip().split(" ")) > 1
                 }
 
+                quote = '"'
                 attributes["gene_id"] = (
-                    f"\"{args.prefix}_{attributes['gene_id'].strip('"')}\""
+                    f'{quote}{args.prefix}_{attributes["gene_id"].strip(quote)}{quote}'
                 )
                 attributes["transcript_id"] = (
-                    f"\"{args.prefix}_{attributes['transcript_id'].strip('"')}\""
+                    f'{quote}{args.prefix}_{attributes["transcript_id"].strip(quote)}{quote}'
                 )
 
                 fields[8] = ";".join(
@@ -46,8 +47,9 @@ def run(args: argparse.Namespace) -> None:
                         for k, v in attributes.items()
                     ]
                 )
-                out.write("\t".join(fields))
-                out.write("\n")
+
+                _ = out.write("\t".join(fields))
+                _ = out.write("\n")
 
     print(f"INFO: Renamed GTF file to {args.gtf}")
     return
