@@ -50,6 +50,13 @@ process ALETSCH {
     mv ${prefix}_gtf/${prefix}.gtf ${prefix}.gtf
     mv ${prefix}_profile ${prefix}.profile
 
+    rename_gtf.py \\
+        -g ${prefix}.gtf \\
+        -p ${prefix} \\
+        -o ${prefix}.renamed.gtf
+
+    rm ${prefix}.gtf
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         aletsch: \$(aletsch --version 2>&1 | sed 's/^.*aletsch //; s/ .*\$//')
@@ -59,7 +66,8 @@ process ALETSCH {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.gtf
+    touch ${prefix}.renamed.gtf
+
     mkdir -p ${prefix}.profile
     touch ${prefix}.profile/0.profile
 

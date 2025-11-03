@@ -2,10 +2,9 @@
 
 
 import argparse
-from pathlib import Path
 from _collections_abc import Sequence
-from typing import Any, Union
-
+from pathlib import Path
+from typing import Union
 
 __author__ = "Alejandro Gonzales-Irribarren"
 __email__ = "alejandrxgzi@gmail.com"
