@@ -29,8 +29,8 @@ workflow METASSEMBLE {
         ch_indexes = PREPARE_INDEXES(
             params.fasta,
             params.star_gtf_path,
-            params.star_ignore_sjdbgtf,
             params.star_index_path,
+            params.star_ignore_gtf_for_index,
             params.deacon_index_path,
             params.deacon_download_index,
             params.deacon_make_single_index,

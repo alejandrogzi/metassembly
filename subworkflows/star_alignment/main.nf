@@ -37,7 +37,7 @@ workflow STAR_ALIGNMENT {
             }
             .set { gtf_split }
 
-        if (params.star_ignore_sjdbgtf) {
+        if (params.star_ignore_gtf_for_mapping) {
             ch_star_first_pass_out = STAR_ALIGN_1PASS(
                 ch_trimmed_split.first_pass,
                 Channel.value([]),
@@ -82,12 +82,12 @@ workflow STAR_ALIGNMENT {
         ch_second_pass_input = ch_trimmed_split.second_pass
             .combine(ch_junctions_file)
 
-        if (params.star_ignore_sjdbgtf) {
+        if (params.star_ignore_gtf_for_mapping) {
             ch_star_second_pass_out = STAR_ALIGN_2PASS(
                 ch_second_pass_input.map { meta, reads, index, _junctions -> [meta, reads, index] },
                 Channel.value([]),
                 ch_second_pass_input.map { _meta, _reads, _index, junctions -> junctions },
-                params.star_ignore_sjdbgtf,
+                params.star_ignore_gtf_for_mapping,
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
@@ -98,7 +98,7 @@ workflow STAR_ALIGNMENT {
                 ch_second_pass_input.map { meta, reads, index, _junctions -> [meta, reads, index] },
                 gtf_split.second_pass,
                 ch_second_pass_input.map { _meta, _reads, _index, junctions -> junctions },
-                params.star_ignore_sjdbgtf,
+                params.star_ignore_gtf_for_mapping,
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',

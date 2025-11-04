@@ -15,15 +15,15 @@ include { PREPARE_DEACON_INDEX } from '../deacon_index/main'
 
 workflow PREPARE_INDEXES {
     take:
-        fasta // file: /path/to/genome.fasta
+        fasta                               // file: /path/to/genome.fasta
         // star_index
-        gtf // file: /path/to/genome.gtf
-        star_ignore_sjdbgtf // val: boolean
-        star_index_path // path: /path/to/star/index/
+        gtf                                 // file: /path/to/genome.gtf
+        star_index_path                     // path: /path/to/star/index/
+        star_ignore_gtf_for_index           // val: boolean
         // deacon_index
-        index_path // val: path(deacon/index)
-        download_index // val: boolean
-        make_single_index // val: boolean
+        index_path                          // val: path(deacon/index)
+        download_index                      // val: boolean
+        make_single_index                   // val: boolean
         multi_index_additional_genome_paths // val: list(path(genome))
 
     main:
@@ -32,8 +32,8 @@ workflow PREPARE_INDEXES {
         PREPARE_GENOME_STAR(
             fasta,
             gtf,
-            star_ignore_sjdbgtf,
             star_index_path
+            star_ignore_gtf_for_index,
         )
 
         ch_versions = ch_versions.mix(PREPARE_GENOME_STAR.out.versions)

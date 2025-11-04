@@ -15,10 +15,10 @@ include { UNTAR as UNTAR_STAR_INDEX } from '../../modules/nf-core/untar/main'
 
 workflow PREPARE_GENOME_STAR {
     take:
-        fasta // file: /path/to/genome.fasta
-        gtf // file: /path/to/genome.gtf
-        star_ignore_sjdbgtf // val: boolean
-        star_index_path // path: /path/to/star/index/
+        fasta                // file: /path/to/genome.fasta
+        gtf                  // file: /path/to/genome.gtf
+        star_index_path      // path: /path/to/star/index/
+        star_ignore_sjdbgtf  // val: boolean
 
     main:
         // Versions collector + init
