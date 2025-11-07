@@ -13,7 +13,7 @@ process DEACON_FILTER {
 
     output:
     tuple val(meta), path("*.deacon.fastq.gz"), emit: reads
-    tuple val(meta1), path("*.deacon.log")     , emit: log
+    tuple val(meta), path("*.deacon.log")     , emit: log
     path "versions.yml"           , emit: versions
 
     when:
