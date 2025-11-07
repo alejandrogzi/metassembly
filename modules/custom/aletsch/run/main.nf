@@ -13,6 +13,7 @@ process ALETSCH {
     output:
     tuple val(meta), path("*.gtf")       , emit: gtf
     tuple val(meta), path("*profile")    , emit: profile
+    tuple val(meta), env(LINE_COUNT)     , emit: assembled_transcripts
     path "versions.yml"                  , emit: versions
 
     when:
@@ -55,6 +56,8 @@ process ALETSCH {
         -p ${prefix} \\
         -o ${prefix}.renamed.gtf
 
+    LINE_COUNT=\$(grep -w 'transcript' ${prefix}.renamed.gtf | wc -l)
+
     rm ${prefix}.gtf
 
     cat <<-END_VERSIONS > versions.yml
@@ -67,6 +70,8 @@ process ALETSCH {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     touch ${prefix}.renamed.gtf
+
+    LINE_COUNT=0
 
     mkdir -p ${prefix}.profile
     touch ${prefix}.profile/0.profile
