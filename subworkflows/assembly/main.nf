@@ -4,8 +4,8 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { ALETSCH } from './modules/custom/aletsch/run/main'
-include { BEAVER } from './modules/custom/beaver/run/main'
+include { ALETSCH } from '../../modules/custom/aletsch/run/main'
+include { BEAVER } from '../../modules/custom/beaver/run/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,5 +38,6 @@ workflow ASSEMBLY {
     emit:
         gtf = BEAVER.out.gtf
         features = BEAVER.out.csv
+        counts = ch_aletsch.assembled_transcripts
         versions = ch_versions // channel: [ versions.yml ]
 }

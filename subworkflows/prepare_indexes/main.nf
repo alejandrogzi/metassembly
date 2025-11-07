@@ -32,7 +32,7 @@ workflow PREPARE_INDEXES {
         PREPARE_GENOME_STAR(
             fasta,
             gtf,
-            star_index_path
+            star_index_path,
             star_ignore_gtf_for_index,
         )
 

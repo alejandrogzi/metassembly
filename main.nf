@@ -10,6 +10,8 @@ include { PREPARE_INDEXES } from './subworkflows/prepare_indexes/main'
 include { PREPROCESS_READS } from './subworkflows/preprocess_reads/main'
 include { STAR_ALIGNMENT } from './subworkflows/star_alignment/main'
 include { ASSEMBLY } from './subworkflows/assembly/main'
+include { MULTIQC } from './modules/nf-core/multiqc/main'
+include { EMAIL_RESULTS } from './modules/custom/email/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,6 +24,7 @@ workflow METASSEMBLE {
     main:
         ch_versions = Channel.empty()
         ch_linting_logs = Channel.empty()
+        ch_multiqc_files = Channel.empty()
 
         ch_start_index = Channel.empty()
         ch_deacon_index = Channel.empty()
@@ -34,7 +37,7 @@ workflow METASSEMBLE {
             params.deacon_index_path,
             params.deacon_download_index,
             params.deacon_make_single_index,
-            params.deacon_multi_index_additional_genome_paths
+            params.deacon_multi_index_additional_genome_paths,
         )
 
         ch_fastqs = Channel
@@ -61,87 +64,106 @@ workflow METASSEMBLE {
                 [meta, reads, index]
             }
 
+        ch_multiqc_files = ch_multiqc_files.mix(ch_processed_reads.fastp_json.map { it[1] })
+
         ch_alignment = STAR_ALIGNMENT(
             ch_final_reads,
             ch_indexes.star_gtf
         )
 
+        ch_multiqc_files = ch_multiqc_files.mix(ch_alignment.log_final.map { it[1] })
+
+        if (!params.skip_multiqc) {
+            ch_multiqc_config        = params.multiqc_config ? Channel.fromPath(params.multiqc_config) : Channel.empty()
+            ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config) : Channel.empty()
+            ch_multiqc_logo          = params.multiqc_logo   ? Channel.fromPath(params.multiqc_logo)   : Channel.empty()
+
+            MULTIQC (
+                ch_multiqc_files.collect(),
+                ch_multiqc_config.toList(),
+                ch_multiqc_custom_config.toList(),
+                ch_multiqc_logo.collect().toList(),
+                [],
+                [],
+            )
+
+            ch_multiqc_report = MULTIQC.out.report
+            ch_versions = ch_versions.mix(MULTIQC.out.versions)
+        }
+
         ch_beaver = ASSEMBLY(
             ch_alignment.bams
         )
 
-        // Create channel with original input info and BAM paths
-        // ch_alignment.bams.map { meta, reads, bai -> [ meta.id, meta, reads, bai ] }
-        //     .join(ch_alignment.percent_mapped)
-        //     .join(ch_processed_reads.deacon_discarded_seqs)
-        //     .transpose()
-        //     .map { id, bam_meta, reads, meta, percent_mapped, deacon_stats ->
-        //         def fastq_1 = reads[0].toUriString()
-        //         def fastq_2 = reads.size() > 1 ? reads[1].toUriString() : ''
-        //         def mapped = percent_mapped != null ? percent_mapped : ''
-        //         def deacon_stats = deacon_stats != null ? deacon_stats : ''
+        ch_fastqs
+          .join(ch_alignment.bams, failOnMismatch: true)                            // (meta, reads, bam, bai)
+          .join(ch_alignment.percent_mapped, failOnMismatch: true)                  // (+ pct)
+          .join(ch_processed_reads.deacon_discarded_seqs, failOnMismatch: true)     // (+ kept)
+          .join(ch_processed_reads.num_trimmed_reads, failOnMismatch: true)         // (+ num_trimmed_reads)
+          .join(ch_processed_reads.num_trimmed_reads_percent, failOnMismatch: true) // (+ num_trimmed_reads_percent)
+          .join(ch_beaver.counts, failOnMismatch: true)                             // (+ assembled_count)
+          .map {
+                meta,
+                reads,
+                bam,
+                bai,
+                pct,
+                kept,
+                reads_after_trim,
+                reads_after_trim_percent,
+                assembled_count
+                ->
+              def fastq_1 = file(reads[0].toUriString()).baseName
+              def fastq_2 = reads.size() > 1 ? file(reads[1].toUriString()).baseName : ''
 
-        //         return "${meta.id},${fastq_1},${fastq_2},${mapped},${deacon_stats}"
-        //     }
-        //     .collectFile(
-        //         name: 'samplesheet_with_bams.csv',
-        //         storeDir: "${params.outdir}/samplesheets",
-        //         newLine: true,
-        //         seed: 'sample,fastq_1,fastq_2,percent_mapped'
-        //     )
+              def bam_size = bam.size()
+
+              "${meta.id},${fastq_1},${fastq_2},${reads_after_trim},${reads_after_trim_percent},${kept ?: ''},${pct ?: ''},${bam_size / 10000000},${assembled_count ?: ''}"
+          }
+          .collectFile(
+            name: 'samplesheet.csv',
+            storeDir: "${params.outdir}/samplesheets",
+            newLine: true,
+          )
+          .set { ch_samplesheet }
 
     emit:
         fastqs = ch_fastqs
         bams = ch_alignment.bams
         junctions = ch_alignment.junctions
         percent_mapped = ch_alignment.percent_mapped
+        samplesheet = ch_samplesheet
+        multiqc_report = ch_multiqc_report
         versions = ch_alignment.versions
 }
 
+workflow PIPELINE_COMPLETION {
 
-// workflow PIPELINE_COMPLETION {
+    take:
+    email
+    email_on_fail
+    plaintext_email
+    outdir
+    ch_samplesheet
 
-//     take:
-//     email           //  string: email address
-//     email_on_fail   //  string: email address sent on pipeline failure
-//     plaintext_email // boolean: Send plain-text email instead of HTML
-//     outdir          //    path: Path to output directory where results will be published
-//     monochrome_logs // boolean: Disable ANSI colour codes in log output
-//     hook_url        //  string: hook URL for notifications
-//     map_status         // map: pass/fail status per sample for mapping
+    main:
 
-//     main:
-//     def pass_mapped_reads  = [:]
+    EMAIL_RESULTS (
+        email,
+        email_on_fail,
+        plaintext_email,
+        outdir,
+        ch_samplesheet
+    )
 
-//     summary_params = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
+    workflow.onComplete {
+        log.info "\nPipeline completed successfully!"
+    }
 
-//     //
-//     // Completion email and summary
-//     //
-//     workflow.onComplete {
-//         if (email || email_on_fail) {
-//             completionEmail(
-//                 summary_params,
-//                 email,
-//                 email_on_fail,
-//                 plaintext_email,
-//                 outdir,
-//                 monochrome_logs,
-//                 multiqc_reports.getVal(),
-//             )
-//         }
-
-//         rnaseqSummary(monochrome_logs, pass_mapped_reads, pass_trimmed_reads, pass_strand_check)
-
-//         if (hook_url) {
-//             imNotification(summary_params, hook_url)
-//         }
-//     }
-
-//     workflow.onError {
-//         log.error "Pipeline failed. Please refer to troubleshooting docs: https://nf-co.re/docs/usage/troubleshooting"
-//     }
-// }
+    workflow.onError {
+        log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metaassembler/issues"
+    }
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -151,6 +173,14 @@ workflow METASSEMBLE {
 
 workflow {
     METASSEMBLE ()
+
+    PIPELINE_COMPLETION (
+        params.email_to,
+        params.email_on_fail,
+        params.plaintext_email,
+        params.outdir,
+        METASSEMBLE.out.samplesheet
+    )
 }
 
 /*

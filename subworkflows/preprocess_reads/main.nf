@@ -60,6 +60,10 @@ workflow PREPROCESS_READS {
             .map { meta, _reads, json -> [meta, _reads, getFastpReadsAfterFiltering(json, params.fastp_min_trimmed_reads.toLong())] }
             .set { ch_num_trimmed_reads }
 
+        trim_json
+            .map { meta, json -> [meta, getFastpReadsAfterFilteringAsPercentage(json, params.fastp_min_trimmed_reads.toLong())] }
+            .set { ch_num_trimmed_reads_percent }
+
         ch_num_trimmed_reads
             .filter { _meta, _reads, num_reads -> num_reads >= params.fastp_min_trimmed_reads.toLong() }
             .map { meta, _reads, _num_reads -> [meta, _reads] }
@@ -108,10 +112,16 @@ workflow PREPROCESS_READS {
         adapter_seq = ch_adapter_seq
         lint_logs = ch_linting_logs
         num_trimmed_reads = trim_read_count
+        num_trimmed_reads_percent = ch_num_trimmed_reads_percent
         deacon_discarded_seqs = ch_deacon_discarded_seqs
+        fastp_html = FASTP.out.html
+        fastp_json = FASTP.out.json
         versions = ch_versions
 }
 
+//
+// Function that parses and returns the number of reads after filtering from FastP log output
+//
 def getFastpReadsAfterFiltering(json_file, min_num_reads) {
     if (workflow.stubRun) {
         return min_num_reads
@@ -121,6 +131,26 @@ def getFastpReadsAfterFiltering(json_file, min_num_reads) {
     return json['after_filtering']['total_reads'].toLong()
 }
 
+
+//
+// Function that parses and returns the number of reads after filtering from FastP log output
+//
+def getFastpReadsAfterFilteringAsPercentage(json_file, min_num_reads) {
+    if (workflow.stubRun) {
+        return min_num_reads
+    }
+
+    def json = new groovy.json.JsonSlurper().parseText(json_file.text).get('summary') as Map
+
+    def total_reads_before_filtering = json['before_filtering']['total_reads'].toLong()
+    def total_reads_after_filtering = json['after_filtering']['total_reads'].toLong()
+
+    return (total_reads_after_filtering / total_reads_before_filtering) * 100
+}
+
+//
+// Function that parses and returns the adapter sequence from FastP log output
+//
 def getFastpAdapterSequence(json_file) {
     // Handle stub runs
     if (workflow.stubRun) {
@@ -138,7 +168,7 @@ def getFastpAdapterSequence(json_file) {
 //
 // Function that parses and returns the retained sequence percentage from Deacon log output
 //
-def getDeaconRetainedPercent(params, deacon_log) {
+def getDeaconRetainedPercent(deacon_log) {
     def retained_percent = 0
     def pattern = /Retained\s+\d+\/\d+\s+sequences\s+\(([\d\.]+)%\)/
 

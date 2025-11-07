@@ -42,7 +42,7 @@ workflow STAR_ALIGNMENT {
                 ch_trimmed_split.first_pass,
                 Channel.value([]),
                 Channel.value([]),
-                params.star_ignore_sjdbgtf,
+                params.star_ignore_gtf_for_mapping,
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
@@ -53,7 +53,7 @@ workflow STAR_ALIGNMENT {
                 ch_trimmed_split.first_pass,
                 gtf_split.first_pass,
                 Channel.value([]),
-                params.star_ignore_sjdbgtf,
+                params.star_ignore_gtf_for_mapping,
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
@@ -117,6 +117,7 @@ workflow STAR_ALIGNMENT {
         bams = ch_bam_sorted
         junctions = ch_junctions_file
         percent_mapped = ch_log_final.map { meta, log -> [ meta, getStarPercentMapped(params, log) ] }
+        log_final = ch_log_final
         versions = ch_versions // channel: [ versions.yml ]
 }
 
