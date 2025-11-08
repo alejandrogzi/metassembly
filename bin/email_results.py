@@ -26,7 +26,7 @@ from typing import Any, List, Optional
 __author__ = "Alejandro Gonzales-Irribarren"
 __email__ = "alejandrxgzi@gmail.com"
 __github__ = "https://github.com/alejandrogzi"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 @dataclass
@@ -67,6 +67,7 @@ class EmailConfig:
         smtp_user: str = "",
         smtp_password: str = "",
         from_addr: str = "",
+        smtp_security: str = "ssl",
         timeline: str = "",
         trace: str = "",
     ):
@@ -85,6 +86,7 @@ class EmailConfig:
         self.smtp_user = smtp_user
         self.smtp_password = smtp_password
         self.from_addr = from_addr
+        self.smtp_security = smtp_security
         self.timeline = timeline
         self.trace = trace
 
@@ -669,19 +671,21 @@ def send_via_smtplib(
     smtp_user: str = "",
     smtp_password: str = "",
     from_addr: str = "",
+    smtp_security: str = "ssl",
 ) -> None:
     """
-    Send email using Python's smtplib with SSL.
+    Send email using Python's smtplib with configurable security.
 
     Args:
         to_addr: Recipient email address
         subject: Email subject
         html_body: HTML email content
         smtp_server: SMTP server hostname
-        smtp_port: SMTP server port (default: 465 for SSL)
+        smtp_port: SMTP server port
         smtp_user: SMTP username/email
         smtp_password: SMTP password or app password
         from_addr: From email address
+        smtp_security: Either "ssl" or "tls"
 
     Raises:
         smtplib.SMTPException: If SMTP communication fails
@@ -700,8 +704,18 @@ def send_via_smtplib(
     # Add HTML body
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-    # Send email
-    with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+    security = (smtp_security or "ssl").lower()
+    if security not in {"ssl", "tls"}:
+        raise ValueError(f"Unsupported SMTP security mode: {smtp_security}")
+
+    if security == "ssl":
+        connector = smtplib.SMTP_SSL
+    else:
+        connector = smtplib.SMTP
+
+    with connector(smtp_server, smtp_port) as server:
+        if security == "tls":
+            server.starttls()
         server.login(smtp_user, smtp_password)
         server.send_message(msg)
 
@@ -716,9 +730,10 @@ def send_email(
     smtp_user: str = "",
     smtp_password: str = "",
     from_addr: str = "",
+    smtp_security: str = "ssl",
 ) -> None:
     """
-    Send email using Python's smtplib.
+    Send email using Python's smtplib with configurable security.
 
     Args:
         to_addr: Recipient email address
@@ -730,6 +745,7 @@ def send_email(
         smtp_user: SMTP username/email
         smtp_password: SMTP password or app password
         from_addr: From email address
+        smtp_security: Either "ssl" or "tls"
 
     Raises:
         smtplib.SMTPException: If SMTP communication fails
@@ -756,8 +772,15 @@ def send_email(
     # Add body
     msg.attach(MIMEText(email_body, content_type, "utf-8"))
 
-    # Send email
-    with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+    security = (smtp_security or "ssl").lower()
+    if security not in {"ssl", "tls"}:
+        raise ValueError(f"Unsupported SMTP security mode: {smtp_security}")
+
+    connector = smtplib.SMTP_SSL if security == "ssl" else smtplib.SMTP
+
+    with connector(smtp_server, smtp_port) as server:
+        if security == "tls":
+            server.starttls()
         server.login(smtp_user, smtp_password)
         server.send_message(msg)
 
@@ -822,6 +845,13 @@ def parse_args() -> EmailConfig:
         default="",
         help="From email address (defaults to smtp-user if not provided)",
     )
+    ap.add_argument(
+        "--smtp-security",
+        dest="smtp_security",
+        choices=["ssl", "tls"],
+        default="ssl",
+        help="SMTP security mode (default: ssl)",
+    )
 
     # File and directory arguments
     ap.add_argument(
@@ -877,6 +907,7 @@ def parse_args() -> EmailConfig:
         smtp_user=args.smtp_user,
         smtp_password=args.smtp_password,
         from_addr=args.from_addr,
+        smtp_security=args.smtp_security,
         timeline=args.timeline,
         trace=args.trace,
     )
@@ -954,6 +985,7 @@ def main() -> int:
                 smtp_user=config.smtp_user,
                 smtp_password=config.smtp_password,
                 from_addr=config.from_addr,
+                smtp_security=config.smtp_security,
             )
         except Exception as ex:
             print(
