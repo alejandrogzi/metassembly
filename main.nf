@@ -118,7 +118,7 @@ workflow METASSEMBLE {
 
               def bam_size = bam.size()
 
-              "${meta.id},${fastq_1},${fastq_2},${reads_after_trim},${reads_after_trim_percent},${kept ?: ''},${pct ?: ''},${bam_size / 10000000},${assembled_count ?: ''}"
+              "${meta.id},${fastq_1},${fastq_2},${reads_after_trim},${reads_after_trim_percent},${kept ?: ''},${pct ?: ''},${bam_size / 100000000},${assembled_count ?: ''}"
           }
           .collectFile(
             name: 'samplesheet.csv',
