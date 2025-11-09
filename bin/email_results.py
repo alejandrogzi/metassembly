@@ -70,6 +70,7 @@ class EmailConfig:
         smtp_security: str = "ssl",
         timeline: str = "",
         trace: str = "",
+        use_mailx: bool = False,
     ):
         self.email = email
         self.email_on_fail = email_on_fail
@@ -89,6 +90,7 @@ class EmailConfig:
         self.smtp_security = smtp_security
         self.timeline = timeline
         self.trace = trace
+        self.use_mailx = use_mailx
 
 
 class SampleRow:
@@ -720,6 +722,42 @@ def send_via_smtplib(
         server.send_message(msg)
 
 
+def send_via_mailx(
+    to_addr: str,
+    subject: str,
+    body: str,
+    from_addr: str = "",
+    content_type: str = "plain",
+) -> None:
+    """
+    Send email using the system mailx command.
+
+    Args:
+        to_addr: Recipient email address
+        subject: Email subject line
+        body: Email body sent through STDIN
+        from_addr: Optional From address passed with -r
+        content_type: Either "plain" or "html" to set MIME headers
+    """
+    cmd = ["mailx"]
+    if from_addr:
+        cmd.extend(["-r", from_addr])
+    if content_type == "html":
+        cmd.extend(
+            [
+                "-S",
+                "mime=1",
+                "-S",
+                "content-type=text/html",
+                "-S",
+                "charset=UTF-8",
+            ]
+        )
+    cmd.extend(["-s", subject, to_addr])
+
+    subprocess.run(cmd, input=body, text=True, check=True)
+
+
 def send_email(
     to_addr: str,
     subject: str,
@@ -731,6 +769,7 @@ def send_email(
     smtp_password: str = "",
     from_addr: str = "",
     smtp_security: str = "ssl",
+    use_mailx: bool = False,
 ) -> None:
     """
     Send email using Python's smtplib with configurable security.
@@ -746,6 +785,7 @@ def send_email(
         smtp_password: SMTP password or app password
         from_addr: From email address
         smtp_security: Either "ssl" or "tls"
+        use_mailx: When True, route through the system mailx command
 
     Raises:
         smtplib.SMTPException: If SMTP communication fails
@@ -755,12 +795,6 @@ def send_email(
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
 
-    # Create message
-    msg = MIMEMultipart()
-    msg["From"] = from_addr or smtp_user
-    msg["To"] = to_addr
-    msg["Subject"] = subject
-
     # Choose content type
     if plaintext:
         email_body = to_plaintext(html_body)
@@ -768,6 +802,22 @@ def send_email(
     else:
         email_body = html_body
         content_type = "html"
+
+    if use_mailx:
+        send_via_mailx(
+            to_addr=to_addr,
+            subject=subject,
+            body=email_body,
+            from_addr=from_addr or smtp_user,
+            content_type=content_type,
+        )
+        return
+
+    # Create message
+    msg = MIMEMultipart()
+    msg["From"] = from_addr or smtp_user
+    msg["To"] = to_addr
+    msg["Subject"] = subject
 
     # Add body
     msg.attach(MIMEText(email_body, content_type, "utf-8"))
@@ -852,6 +902,12 @@ def parse_args() -> EmailConfig:
         default="ssl",
         help="SMTP security mode (default: ssl)",
     )
+    ap.add_argument(
+        "--use-mailx",
+        dest="use_mailx",
+        action="store_true",
+        help="Send email via the system mailx CLI instead of smtplib",
+    )
 
     # File and directory arguments
     ap.add_argument(
@@ -910,6 +966,7 @@ def parse_args() -> EmailConfig:
         smtp_security=args.smtp_security,
         timeline=args.timeline,
         trace=args.trace,
+        use_mailx=args.use_mailx,
     )
 
 
@@ -986,6 +1043,7 @@ def main() -> int:
                 smtp_password=config.smtp_password,
                 from_addr=config.from_addr,
                 smtp_security=config.smtp_security,
+                use_mailx=config.use_mailx,
             )
         except Exception as ex:
             print(

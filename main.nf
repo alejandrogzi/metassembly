@@ -144,6 +144,7 @@ workflow PIPELINE_COMPLETION {
     email_on_fail
     plaintext_email
     outdir
+    use_mailx
     ch_samplesheet
 
     main:
@@ -153,6 +154,7 @@ workflow PIPELINE_COMPLETION {
         email_on_fail,
         plaintext_email,
         outdir,
+        use_mailx,
         ch_samplesheet
     )
 
@@ -179,6 +181,7 @@ workflow {
         params.email_on_fail,
         params.plaintext_email,
         params.outdir,
+        params.use_mailx,
         METASSEMBLE.out.samplesheet
     )
 }

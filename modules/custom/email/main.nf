@@ -10,18 +10,32 @@ process EMAIL_RESULTS {
     val email_on_fail
     val plaintext_email
     val outdir
+    val use_mailx
     path samplesheet
 
     script:
-    """
-    email_results.py \\
-        --email ${email} \\
-        --email-on-fail ${email_on_fail} \\
-        --outdir ${outdir} \\
-        --samplesheet ${samplesheet} \\
-        --smtp-server ${params.smtp_server} \\
-        --smtp-port ${params.smtp_port} \\
-        --smtp-user ${params.smtp_user} \\
-        --smtp-password ${params.smtp_password} \\
-    """
+    // INFO: if use_mailx, all smpt options are ignored
+    if (use_mailx) {
+        """
+        email_results.py \\
+            --email ${email} \\
+            --email-on-fail ${email_on_fail} \\
+            --outdir ${outdir} \\
+            --samplesheet ${samplesheet} \\
+            --use-mailx
+        """
+    } else {
+        """
+        email_results.py \\
+            --email ${email} \\
+            --email-on-fail ${email_on_fail} \\
+            --outdir ${outdir} \\
+            --samplesheet ${samplesheet} \\
+            --smtp-server ${params.smtp_server} \\
+            --smtp-port ${params.smtp_port} \\
+            --smtp-user ${params.smtp_user} \\
+            --smtp-password ${params.smtp_password} \\
+            --smtp-security ${params.smtp_security}
+        """
+    }
 }
