@@ -60,6 +60,19 @@ process ALETSCH {
 
     rm ${prefix}.gtf
 
+    if [ ${params.aletsch_keep_bam} == false ]; then
+        # Resolve symlinks and delete actual files
+        if [ -L "${bam}" ]; then
+            realpath=\$(readlink -f "${bam}")
+            rm -f "${bam}"
+            if [ -n "\$realpath" ]; then
+                rm -f "\$realpath"
+            fi
+        else
+            rm -f "${bam}"
+        fi
+    fi
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         aletsch: \$(aletsch --version 2>&1 | sed 's/^.*aletsch //; s/ .*\$//')

@@ -96,7 +96,7 @@ workflow METASSEMBLE {
         )
 
         ch_fastqs
-          .join(ch_alignment.bams, failOnMismatch: true)                            // (meta, reads, bam, bai)
+          .join(ch_alignment.bam_size, failOnMismatch: true)                        // (meta, reads, bam_size)
           .join(ch_alignment.percent_mapped, failOnMismatch: true)                  // (+ pct)
           .join(ch_processed_reads.deacon_discarded_seqs, failOnMismatch: true)     // (+ kept)
           .join(ch_processed_reads.num_trimmed_reads, failOnMismatch: true)         // (+ num_trimmed_reads)
@@ -105,8 +105,7 @@ workflow METASSEMBLE {
           .map {
                 meta,
                 reads,
-                bam,
-                bai,
+                bam_size_bytes,
                 pct,
                 kept,
                 reads_after_trim,
@@ -116,7 +115,7 @@ workflow METASSEMBLE {
               def fastq_1 = file(reads[0].toUriString()).baseName
               def fastq_2 = reads.size() > 1 ? file(reads[1].toUriString()).baseName : ''
 
-              def bam_size = bam.size()
+              def bam_size = (bam_size_bytes ?: 0) as long
 
               "${meta.id},${fastq_1},${fastq_2},${reads_after_trim},${reads_after_trim_percent},${kept ?: ''},${pct ?: ''},${bam_size / 100000000},${assembled_count ?: ''}"
           }
@@ -158,12 +157,12 @@ workflow PIPELINE_COMPLETION {
         ch_samplesheet
     )
 
-    workflow.onComplete {
-        log.info "\nPipeline completed successfully!"
-    }
-
     workflow.onError {
         log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metaassembler/issues"
+    }
+
+    workflow.onComplete {
+        log.info "\nPipeline completed successfully!"
     }
 }
 

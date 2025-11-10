@@ -35,6 +35,18 @@ process DEACON_FILTER {
         $reads \\
         > ${prefix}.deacon.log 2>&1
 
+    if [ ${params.deacon_keep_fastp_fastq} == false ]; then
+        # Resolve symlinks and delete actual files
+        for file in $reads; do
+            if [ -L "\$file" ]; then
+                realpath=\$(readlink -f "\$file")
+                rm -f "\$realpath"
+            else
+                rm -f "\$file"
+            fi
+        done
+    fi
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         deacon: \$(deacon --version | head -n1 | sed 's/deacon //g')

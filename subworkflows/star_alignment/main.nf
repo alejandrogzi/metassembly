@@ -46,7 +46,9 @@ workflow STAR_ALIGNMENT {
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
-                params.star_machine_type ?: ''
+                params.star_machine_type ?: '',
+                params.star_keep_first_pass_bam ?: false,
+                false // delete fastq
             )
         } else {
             ch_star_first_pass_out = STAR_ALIGN_1PASS(
@@ -57,7 +59,9 @@ workflow STAR_ALIGNMENT {
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
-                params.star_machine_type ?: ''
+                params.star_machine_type ?: '',
+                params.star_keep_first_pass_bam ?: false,
+                false, // delete fastq
             )
         }
 
@@ -91,7 +95,9 @@ workflow STAR_ALIGNMENT {
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
-                params.star_machine_type ?: ''
+                params.star_machine_type ?: '',
+                true, // keep bam -> we need it for Aletsch
+                params.star_delete_fastq_after_alignment ?: true
             )
         } else {
             ch_star_second_pass_out = STAR_ALIGN_2PASS(
@@ -102,7 +108,9 @@ workflow STAR_ALIGNMENT {
                 params.star_seq_platform ?: '',
                 params.star_seq_center ?: '',
                 params.star_seq_library ?: '',
-                params.star_machine_type ?: ''
+                params.star_machine_type ?: '',
+                true, // keep bam -> we need it for Aletsch
+                params.star_delete_fastq_after_alignment ?: true
             )
         }
 
@@ -118,6 +126,7 @@ workflow STAR_ALIGNMENT {
         junctions = ch_junctions_file
         percent_mapped = ch_log_final.map { meta, log -> [ meta, getStarPercentMapped(params, log) ] }
         log_final = ch_log_final
+        bam_size = ch_star_second_pass_out.bam_size
         versions = ch_versions // channel: [ versions.yml ]
 }
 

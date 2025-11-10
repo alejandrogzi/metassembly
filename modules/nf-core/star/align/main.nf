@@ -16,6 +16,8 @@ process STAR_ALIGN {
         val seq_center
         val seq_library
         val seq_machine_type
+        val keep_bam
+        val delete_fastq
 
     output:
         tuple val(meta), path('*Log.final.out'), emit: log_final
@@ -37,6 +39,7 @@ process STAR_ALIGN {
         tuple val(meta), path('*.wig'), optional: true, emit: wig
         tuple val(meta), path('*.bg'), optional: true, emit: bedgraph
         tuple val(meta), path('*.bai'), optional: true, emit: bai
+        tuple val(meta), env(BAM_SIZE), optional: true, emit: bam_size
 
     when:
         task.ext.when == null || task.ext.when
@@ -83,6 +86,29 @@ process STAR_ALIGN {
 
         samtools index ${prefix}.Aligned.sortedByCoord.out.bam
 
+        if [ -f "${prefix}.Aligned.sortedByCoord.out.bam" ]; then
+            BAM_SIZE=\$(stat -c%s "${prefix}.Aligned.sortedByCoord.out.bam")
+        else
+            BAM_SIZE=0
+        fi
+
+        if [ ${keep_bam} == "false" ]; then
+            rm ${prefix}.Aligned.sortedByCoord.out.bam
+            rm ${prefix}.Aligned.sortedByCoord.out.bam.bai
+        fi
+
+        if [ ${delete_fastq} == "true" ]; then
+            # Delete actual input files, not just symlinks
+            for file in ${reads1.join(" ")} ${reads2.join(" ")}; do
+                if [ -L "\$file" ]; then
+                    realpath=\$(readlink -f "\$file")
+                    rm -f "\$realpath"
+                else
+                    rm -f "\$file"
+                fi
+            done
+        fi
+
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             star: \$(STAR --version | sed -e "s/STAR_//g")
@@ -112,6 +138,7 @@ process STAR_ALIGN {
         touch ${prefix}.Signal.UniqueMultiple.str1.out.wig
         touch ${prefix}.Signal.UniqueMultiple.str1.out.bg
         touch ${prefix}.Aligned.sortedByCoord.out.bam.bai
+        BAM_SIZE=0
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
