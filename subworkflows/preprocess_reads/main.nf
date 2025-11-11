@@ -56,16 +56,25 @@ workflow PREPROCESS_READS {
 
         ch_versions = ch_versions.mix(FASTP.out.versions.first())
 
+        def minTrimmedReads = params.fastp_min_trimmed_reads.toLong()
+
         FASTP.out.reads.join(trim_json)
-            .map { meta, _reads, json -> [meta, _reads, getFastpReadsAfterFiltering(json, params.fastp_min_trimmed_reads.toLong())] }
+            .map { meta, _reads, json -> [meta, _reads, getFastpReadsAfterFiltering(json, minTrimmedReads)] }
             .set { ch_num_trimmed_reads }
 
         trim_json
-            .map { meta, json -> [meta, getFastpReadsAfterFilteringAsPercentage(json, params.fastp_min_trimmed_reads.toLong())] }
+            .map { meta, json -> [meta, getFastpReadsAfterFilteringAsPercentage(json, minTrimmedReads)] }
             .set { ch_num_trimmed_reads_percent }
 
         ch_num_trimmed_reads
-            .filter { _meta, _reads, num_reads -> num_reads >= params.fastp_min_trimmed_reads.toLong() }
+            .filter { meta, _reads, num_reads ->
+                def keepSample = num_reads >= minTrimmedReads
+                if (!keepSample) {
+                    def sampleId = meta?.id ?: meta
+                    log.warn "[PREPROCESS_READS] Discarding sample ${sampleId} after trimming: ${num_reads} reads < min_trimmed_reads (${minTrimmedReads})"
+                }
+                return keepSample
+            }
             .map { meta, _reads, _num_reads -> [meta, _reads] }
             .set { ch_trimmed_reads }
 

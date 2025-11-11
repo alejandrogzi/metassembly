@@ -153,14 +153,16 @@ workflow PIPELINE_COMPLETION {
 
     main:
 
-    EMAIL_RESULTS (
-        email,
-        email_on_fail,
-        plaintext_email,
-        outdir,
-        use_mailx,
-        ch_samplesheet
-    )
+    if (params.sent_email) {
+        EMAIL_RESULTS (
+            email,
+            email_on_fail,
+            plaintext_email,
+            outdir,
+            use_mailx,
+            ch_samplesheet
+        )
+    }
 
     workflow.onError {
         log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metaassembler/issues"
