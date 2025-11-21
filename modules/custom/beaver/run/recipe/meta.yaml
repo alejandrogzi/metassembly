@@ -3,7 +3,7 @@ package:
   version: "0.0.1"
 
 source:
-  git: https://github.com/Shao-Group/beaver.git
+  git: https://github.com/alejandrogzi/beaver.git
   rev: master
 
 build:
