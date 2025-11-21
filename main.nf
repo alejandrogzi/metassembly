@@ -58,6 +58,11 @@ workflow METASSEMBLE {
             ch_indexes.deacon_index
         )
 
+        ch_processed_keys = ch_processed_reads.processed_reads.map { meta, _ -> [meta, true] }
+        ch_fastqs_kept = ch_fastqs
+                .join(ch_processed_keys)
+                .map { meta, reads, _ -> [meta, reads] }
+
         ch_final_reads = ch_processed_reads.processed_reads
             .combine(ch_indexes.star_index)
             .map { meta, reads, index ->
@@ -95,7 +100,7 @@ workflow METASSEMBLE {
             ch_alignment.bams
         )
 
-        ch_fastqs
+        ch_fastqs_kept
           .join(ch_alignment.bam_size, failOnMismatch: true)                        // (meta, reads, bam_size)
           .join(ch_alignment.percent_mapped, failOnMismatch: true)                  // (+ pct)
           .join(ch_processed_reads.deacon_discarded_seqs, failOnMismatch: true)     // (+ kept)
@@ -148,14 +153,16 @@ workflow PIPELINE_COMPLETION {
 
     main:
 
-    EMAIL_RESULTS (
-        email,
-        email_on_fail,
-        plaintext_email,
-        outdir,
-        use_mailx,
-        ch_samplesheet
-    )
+    if (params.sent_email) {
+        EMAIL_RESULTS (
+            email,
+            email_on_fail,
+            plaintext_email,
+            outdir,
+            use_mailx,
+            ch_samplesheet
+        )
+    }
 
     workflow.onError {
         log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metaassembler/issues"

@@ -33,8 +33,8 @@ process BEAVER {
     beaver \\
         gtf_list.txt \\
         ${prefix} \\
-        $args \\
-        > beaver.log 2>&1
+        -t ${task.cpus} \\
+        $args
 
     mv ${prefix}.gtf beaver_output/
     mv ${prefix}_feature.csv beaver_output/
