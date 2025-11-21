@@ -3,8 +3,8 @@
     {
       "_path": "bin/beaver",
       "path_type": "hardlink",
-      "sha256": "d1b2e4fbaa1109bd18dc4087f7159914df61aa38f73796f0ff4eb4c5915d0da6",
-      "size_in_bytes": 286168
+      "sha256": "d8ef6ecd4c04b9c3d4b68a5b7525295eea5450f0d4ca797c047055bfc5c9fc86",
+      "size_in_bytes": 285672
     }
   ],
   "paths_version": 1

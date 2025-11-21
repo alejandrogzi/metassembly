@@ -25,11 +25,11 @@ requirements:
     - autoconf
     - automake
     - make
-    - sysroot_linux-64
+    - sysroot_linux-64 ==2.17
   host:
     - boost-cpp
     - htslib
-    - sysroot_linux-64
+    - sysroot_linux-64 ==2.17
   run:
     - boost-cpp
     - htslib
