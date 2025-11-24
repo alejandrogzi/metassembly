@@ -20,10 +20,10 @@ META_ENV_PREFIX="$CONDA_BASE_DIR/metassembly"
 echo "---------------------------------------------------"
 echo "> metassembly: Bulk RNA-seq pipeline for transcript assembly"
 echo "> Copyright (c) 2025 Alejandro Gonzalez-Irribarren <alejandrxgzi@gmail.com>"
-echo "> Repositoy: https://github.com/alejandrogzi/metassembly"
+echo "> Repository: https://github.com/alejandrogzi/metassembly"
 echo "---------------------------------------------------"
 
-echo 
+echo
 echo "> Configuring metassembly..."
 echo
 
