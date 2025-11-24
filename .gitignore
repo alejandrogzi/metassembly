@@ -1,0 +1,6 @@
+*test.config
+*test*
+/work
+/target
+.ruff_cache
+.nextflow*
