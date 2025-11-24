@@ -1,6 +1,6 @@
 name: beaver
 channels:
-  - file:///package/
+  - file:///package
   - bioconda
   - conda-forge
 dependencies:
