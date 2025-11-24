@@ -5,6 +5,7 @@
 */
 
 include { DEACON_INDEX } from '../../modules/nf-core/deacon/index/main'
+include { DEACON_MULTI_INDEX } from '../../modules/custom/deacon/multindex/main'
 include { WGET } from '../../modules/nf-core/wget/main'
 
 /*
