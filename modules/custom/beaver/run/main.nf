@@ -19,11 +19,9 @@ process BEAVER {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "beaver_output"
-
     """
-    # Create GTF list file
     for gtf in ${gtfs}; do
-        echo "\${gtf}" >> gtf_list.txt
+        echo "\$gtf" >> gtf_list.txt
     done
 
     # Create output directory
@@ -41,14 +39,14 @@ process BEAVER {
 
     if [ ${params.beaver_keep_aletsch_gtf} == false ]; then
         for gtf in ${gtfs}; do
-            if [ -L "${gtf}" ]; then
-                realpath=\$(readlink -f "${gtf}")
-                rm -f "${gtf}"
+            if [ -L "\$gtf" ]; then
+                realpath=\$(readlink -f "\$gtf")
+                rm -f "\$gtf"
                 if [ -n "\$realpath" ]; then
                     rm -f "\$realpath"
                 fi
             else
-                rm -f "${gtf}"
+                rm -f "\$gtf"
             fi
         done
     fi
