@@ -39,6 +39,20 @@ process BEAVER {
     mv ${prefix}.gtf beaver_output/
     mv ${prefix}_feature.csv beaver_output/
 
+    if [ ${params.beaver_keep_aletsch_gtf} == false ]; then
+        for gtf in ${gtfs}; do
+            if [ -L "${gtf}" ]; then
+                realpath=\$(readlink -f "${gtf}")
+                rm -f "${gtf}"
+                if [ -n "\$realpath" ]; then
+                    rm -f "\$realpath"
+                fi
+            else
+                rm -f "${gtf}"
+            fi
+        done
+    fi
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         beaver: \$(beaver --version 2>&1 | sed 's/^.*beaver //; s/ .*\$//' || echo "0.0.1")
