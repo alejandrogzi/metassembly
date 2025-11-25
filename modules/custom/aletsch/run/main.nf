@@ -59,6 +59,7 @@ process ALETSCH {
     LINE_COUNT=\$(grep -w 'transcript' ${prefix}.renamed.gtf | wc -l)
 
     rm ${prefix}.gtf
+    rm -rf ${prefix}_gtf/
 
     if [ ${params.aletsch_keep_bam} == false ]; then
         # Resolve symlinks and delete actual files
