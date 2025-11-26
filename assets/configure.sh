@@ -14,7 +14,7 @@ MAIN_ENV_FILE="$REPO_ROOT/assets/metassembly.yml"
 PACKAGE_DIR="$REPO_ROOT/modules/custom/beaver/run/package"
 BEAVER_CHANNEL_VALUE="file://$PACKAGE_DIR/"
 
-CONDA_BASE_DIR="$REPO_ROOT/work/conda"
+CONDA_BASE_DIR="$REPO_ROOT/conda"
 META_ENV_PREFIX="$CONDA_BASE_DIR/metassembly"
 
 echo "---------------------------------------------------"
