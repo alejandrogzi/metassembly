@@ -10,21 +10,26 @@ background datasets (FDA-ARGOS and RefSeq viral) for differential analysis.
 import argparse
 import subprocess
 import sys
-from pathlib import Path
 from _collections_abc import Sequence
-from typing import Final, Any, Union
+from pathlib import Path
+from typing import Any, Final, Optional, Union
 
 __author__ = "Alejandro Gonzales-Irribarren"
 __email__ = "alejandrxgzi@gmail.com"
 __github__ = "https://github.com/alejandrogzi"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
-# Constants
 FDA_ARGOS_URL: Final[str] = (
     "https://zenodo.org/records/15424142/files/argos988.fa.zst?download=1"
 )
 REFSEQ_VIRAL_URL: Final[str] = (
     "https://zenodo.org/records/15411280/files/rsviruses17900.fa.gz?download=1"
+)
+ZENODO_JOINED_BACKGROUND_URL_E5: Final[str] = (
+    "https://zenodo.org/records/17511655/files/argos988_rsvirus17900.k31w15e5.idx?download=1"
+)
+ZENODO_JOINED_BACKGROUND_URL_E0: Final[str] = (
+    "https://zenodo.org/records/17511655/files/argos988_rsvirus17900.k31w15.idx?download=1"
 )
 DEFAULT_KMER_LENGTH: Final[int] = 31
 DEFAULT_WINDOW_SIZE: Final[int] = 15
@@ -190,6 +195,29 @@ class DeaconIndexBuilder:
         self._run_command(cmd)
         return viral_idx_output
 
+    def download_indexed_background(self, entropy: float) -> Path:
+        """
+        Download pre-built joined background index from Zenodo.
+
+        Returns
+        -------
+        Path
+            Path to the joined background index
+        """
+        output = self.outdir / "argos988_rsviruses17900.idx"
+
+        if entropy == 0.0:
+            download_cmd = f"wget -O {output} {ZENODO_JOINED_BACKGROUND_URL_E0}"
+        elif entropy == 0.5:
+            download_cmd = f"wget -O {output} {ZENODO_JOINED_BACKGROUND_URL_E5}"
+        else:
+            raise ValueError(
+                f"ERROR: No joined index available for entropy value: {entropy}"
+            )
+
+        self._run_command(download_cmd)
+        return output
+
     @staticmethod
     def _run_command(cmd: str) -> None:
         """
@@ -264,8 +292,12 @@ def build_main_indexes(
 
 
 def build_background_index(
-    builder: DeaconIndexBuilder, use_fda_argos: bool, use_refseq_viral: bool
-) -> Path | None:
+    builder: DeaconIndexBuilder,
+    use_fda_argos: bool,
+    use_refseq_viral: bool,
+    from_zenodo: bool,
+    entropy: float,
+) -> Optional[Path]:
     """
     Build background index from optional datasets.
 
@@ -283,21 +315,27 @@ def build_background_index(
     Path | None
         Path to background index if any datasets were used, None otherwise
     """
-    background_indexes = []
+    if not from_zenodo:
+        background_indexes = []
 
-    if use_fda_argos:
-        background_indexes.append(builder.download_and_index_fda_argos())
+        if use_fda_argos:
+            background_indexes.append(builder.download_and_index_fda_argos())
 
-    if use_refseq_viral:
-        background_indexes.append(builder.download_and_index_refseq_viral())
+        if use_refseq_viral:
+            background_indexes.append(builder.download_and_index_refseq_viral())
 
-    if len(background_indexes) > 1:
-        print("INFO: Creating background multindex from multiple datasets")
-        background = builder.create_union_index(background_indexes, "background.idx")
-    elif len(background_indexes) == 1:
-        background = background_indexes[0]
+        if len(background_indexes) > 1:
+            print("INFO: Creating background multindex from multiple datasets")
+            background = builder.create_union_index(
+                background_indexes, "background.idx"
+            )
+        elif len(background_indexes) == 1:
+            background = background_indexes[0]
+        else:
+            return None
     else:
-        return None
+        print("INFO: Downloading pre-built background index from Zenodo")
+        background = builder.download_indexed_background(entropy)
 
     print(f"INFO: Background created at {background}")
     return background
@@ -331,7 +369,11 @@ def run(args: argparse.Namespace) -> None:
 
     # Build background if requested
     background = build_background_index(
-        builder, args.use_fda_argos, args.use_refseq_viral
+        builder,
+        args.use_fda_argos,
+        args.use_refseq_viral,
+        args.from_zenodo,
+        args.entropy,
     )
 
     # Create differential index if background exists
@@ -424,6 +466,12 @@ Examples:
         "--use-refseq-viral",
         action="store_true",
         help="Include RefSeq viral dataset as background for differential analysis",
+    )
+    parser.add_argument(
+        "-Z",
+        "--from-zenodo",
+        action="store_true",
+        help="Download and use pre-built background index from Zenodo [overrides -F and -R]",
     )
     parser.add_argument(
         "-t",

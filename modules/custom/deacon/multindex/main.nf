@@ -20,7 +20,11 @@ process DEACON_MULTI_INDEX {
     deacon_multindex.py \\
     --genomes $genomes \\
     --use-fda-argos \\
-    --use-refseq-viral
+    --use-refseq-viral \\
+    --from-zenodo
+
+    shopt -s extglob
+    rm !(final).idx
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
