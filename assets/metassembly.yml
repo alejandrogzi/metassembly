@@ -12,6 +12,7 @@ dependencies:
   - bioconda::multiqc=1.31
   - bioconda::samtools=1.21
   - bioconda::star=2.7.11b
+  - bioconda::ucsc-twobittofa
   - conda-forge::coreutils=9.5
   - conda-forge::gawk=5.1.0
   - conda-forge::grep=3.11
