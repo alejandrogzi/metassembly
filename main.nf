@@ -168,7 +168,7 @@ workflow PIPELINE_COMPLETION {
     }
 
     workflow.onError {
-        log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metaassembler/issues"
+        log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metassembly/issues"
     }
 
     workflow.onComplete {
