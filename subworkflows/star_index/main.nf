@@ -25,7 +25,9 @@ workflow PREPARE_GENOME_STAR {
         ch_versions = Channel.empty()
         ch_gtf = Channel.of([])
 
-        ch_fasta = Channel.value(file(fasta, checkIfExists: true))
+        ch_fasta = (fasta instanceof groovyx.gpars.dataflow.DataflowReadChannel) ?
+            fasta.map { file(it, checkIfExists: true) } :
+            Channel.value(file(fasta, checkIfExists: true))
 
         if (!star_ignore_sjdbgtf) {
             ch_gtf = Channel.value(file(gtf, checkIfExists: true))
