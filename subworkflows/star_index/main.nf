@@ -33,7 +33,7 @@ workflow PREPARE_GENOME_STAR {
         if (!star_ignore_sjdbgtf) {
             ch_gtf = Channel.value(file(gtf, checkIfExists: true))
 
-            if (ch_gtf.endsWith('.gz')) {
+            if (gtf.endsWith('.gz')) {
                ch_gtf = GUNZIP_GTF(ch_gtf.map { [[:], it] }).gunzip.map { it[1] }
                ch_versions = ch_versions.mix(GUNZIP_GTF.out.versions)
             } 
