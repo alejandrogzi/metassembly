@@ -1,5 +1,5 @@
-process GUNZIP_FASTA {
-    tag "$fasta_gz"
+process GUNZIP {
+    tag "$archive"
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
@@ -8,24 +8,24 @@ process GUNZIP_FASTA {
         'community.wave.seqera.io/library/coreutils_grep_gzip_lbzip2_pruned:838ba80435a629f8' }"
 
     input:
-    tuple val(meta), path(fasta_gz)
+    tuple val(meta), path(archive)
 
     output:
-    tuple val(meta), path("${prefix}.fasta"), emit: fasta
-    path "versions.yml", emit: versions
+    tuple val(meta), path("$gunzip"), emit: gunzip
+    path "versions.yml"             , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: fasta_gz.getFileName().toString().replaceFirst(/(\.fa|\.fasta)?\.gz$/, '')
+    gunzip = task.ext.prefix ?: archive.toString() - '.gz'
     """
     gunzip \\
         -c \\
         $args \\
-        "$fasta_gz" \\
-        > "${prefix}.fasta"
+        "$archive" \\
+        > "$gunzip"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -34,9 +34,9 @@ process GUNZIP_FASTA {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: fasta_gz.getFileName().toString().replaceFirst(/(\.fa|\.fasta)?\.gz$/, '')
+    gunzip = task.ext.prefix ?: archive.toString() - '.gz'
     """
-    touch ${prefix}.fasta
+    touch $gunzip
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
