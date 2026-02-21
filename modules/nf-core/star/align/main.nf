@@ -112,6 +112,9 @@ process STAR_ALIGN {
 
         if [ $is_producing_cov == true ]; then
             rm ${prefix}.Signal.UniqueMultiple.*
+
+            sort -k1,1 -k2,2n ${prefix}.Signal.Unique.str1.out.bg > tmp.bg
+            mv tmp.bg ${prefix}.Signal.Unique.str1.out.bg
         fi
 
         cat <<-END_VERSIONS > versions.yml
