@@ -8,6 +8,7 @@ include { PREPARE_GENOME_STAR } from '../star_index/main'
 include { PREPARE_DEACON_INDEX } from '../deacon_index/main'
 include { TWOBIT_TO_FA } from '../../modules/custom/twobit/main'
 include { GUNZIP as GUNZIP_FASTA } from '../../modules/custom/gunzip/main'
+include { CHROMSIZE } from '../../modules/custom/chromsize/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -17,7 +18,7 @@ include { GUNZIP as GUNZIP_FASTA } from '../../modules/custom/gunzip/main'
 
 workflow PREPARE_INDEXES {
     take:
-        fasta                               // file: /path/to/genome.fasta
+        genome                               // file: /path/to/genome.{2bit/fasta}
         // star_index
         gtf                                 // file: /path/to/genome.gtf
         star_index_path                     // path: /path/to/star/index/
@@ -31,18 +32,20 @@ workflow PREPARE_INDEXES {
     main:
         ch_versions = Channel.empty()
 
-        def fasta_file = file(fasta, checkIfExists: true)
-        def fasta_path = fasta_file.toString()
+        def genome_file = file(genome, checkIfExists: true)
+        def genome_path = genome_file.toString()
+
+        ch_chrom_sizes = CHROMSIZE([[:], genome_file]).chromsize.map { it[1] }
 
         // INFO: if fasta is .2bit or .gz, convert or uncompress it
-        if (fasta_path.endsWith(".2bit")) {
-            ch_fasta = TWOBIT_TO_FA([[:], fasta_file]).fasta.map { it[1] }
+        if (genome_path.endsWith(".2bit")) {
+            ch_fasta = TWOBIT_TO_FA([[:], genome_file]).fasta.map { it[1] }
             ch_versions = ch_versions.mix(TWOBIT_TO_FA.out.versions)
-        } else if (fasta_path.endsWith(".gz")) {
-            ch_fasta = GUNZIP_FASTA([[:], fasta_file]).gunzip.map { it[1] }
+        } else if (genome_path.endsWith(".gz")) {
+            ch_fasta = GUNZIP_FASTA([[:], genome_file]).gunzip.map { it[1] }
             ch_versions = ch_versions.mix(GUNZIP_FASTA.out.versions)
         } else {
-            ch_fasta = Channel.value(fasta_file)
+            ch_fasta = Channel.value(genome_file)
         }
 
         PREPARE_GENOME_STAR(
@@ -68,5 +71,6 @@ workflow PREPARE_INDEXES {
         star_index = PREPARE_GENOME_STAR.out.star_index
         star_gtf = PREPARE_GENOME_STAR.out.star_gtf
         deacon_index = PREPARE_DEACON_INDEX.out.deacon_index
+        chrom_sizes = ch_chrom_sizes
         versions = ch_versions
 }
