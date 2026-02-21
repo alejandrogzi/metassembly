@@ -6,6 +6,7 @@
 
 include { ALETSCH } from '../../modules/custom/aletsch/run/main'
 include { BEAVER } from '../../modules/custom/beaver/run/main'
+include { RENAME_GTF } from '../../modules/custom/rename/gtf/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24,7 +25,11 @@ workflow ASSEMBLY {
             ch_bams
         )
 
-        ch_aletsch_gtfs = ch_aletsch.gtf
+        ch_renamed_gtf = RENAME_GTF(
+            ch_aletsch.gtf
+        )
+
+        ch_aletsch_gtfs = ch_renamed_gtf.gtf
             .map { meta, gtf -> gtf }
             .collect()
 

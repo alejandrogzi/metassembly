@@ -52,14 +52,8 @@ process ALETSCH {
     mv ${prefix}_gtf/${prefix}.gtf ${prefix}.gtf
     mv ${prefix}_profile ${prefix}.profile
 
-    rename_gtf.py \\
-        -g ${prefix}.gtf \\
-        -p ${prefix} \\
-        -o ${prefix}.renamed.gtf
+    LINE_COUNT=\$(grep -w 'transcript' ${prefix}.gtf | wc -l)
 
-    LINE_COUNT=\$(grep -w 'transcript' ${prefix}.renamed.gtf | wc -l)
-
-    rm ${prefix}.gtf
     rm -rf ${prefix}_gtf/
 
     if [ ${params.aletsch_keep_bam} == false ] && [ ${params.star_make_coverage} == false ]; then
