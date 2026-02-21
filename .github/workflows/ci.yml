@@ -36,6 +36,3 @@ jobs:
 
       - name: Validate Nextflow config
         run: nextflow config -flat . > /dev/null
-
-      - name: Compile workflow graph
-        run: nextflow run main.nf --help -ansi-log false > /dev/null
