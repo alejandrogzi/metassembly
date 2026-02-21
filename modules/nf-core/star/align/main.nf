@@ -36,8 +36,8 @@ process STAR_ALIGN {
         tuple val(meta), path('*.ReadsPerGene.out.tab'), optional: true, emit: read_per_gene_tab
         tuple val(meta), path('*.out.junction'), optional: true, emit: junction
         tuple val(meta), path('*.out.sam'), optional: true, emit: sam
-        tuple val(meta), path('*.wig'), optional: true, emit: wig
-        tuple val(meta), path('*.bg'), optional: true, emit: bedgraph
+        tuple val(meta), path('*Unique.*.wig'), optional: true, emit: wig
+        tuple val(meta), path('*Unique.*.bg'), optional: true, emit: bedgraph
         tuple val(meta), path('*.bai'), optional: true, emit: bai
         tuple val(meta), env(BAM_SIZE), optional: true, emit: bam_size
 
@@ -61,6 +61,7 @@ process STAR_ALIGN {
         attrRG = args.contains("--outSAMattrRGline") ? "" : "--outSAMattrRGline 'ID:$prefix' $seq_center_arg 'SM:$prefix' $seq_platform_arg"
         def out_sam_type = (args.contains('--outSAMtype')) ? '' : '--outSAMtype BAM SortedByCoordinate'
         mv_unsorted_bam = (args.contains('--outSAMtype BAM Unsorted SortedByCoordinate')) ? "mv ${prefix}.Aligned.out.bam ${prefix}.Aligned.unsort.out.bam" : ''
+        def is_producing_cov = (args.contains('--outWigType')) ? true : false
         """
         STAR \
             --genomeDir $index \
@@ -109,6 +110,10 @@ process STAR_ALIGN {
             done
         fi
 
+        if [ $is_producing_cov == true ]; then
+            rm ${prefix}.Signal.UniqueMultiple.*
+        fi
+
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             star: \$(STAR --version | sed -e "s/STAR_//g")
@@ -137,6 +142,8 @@ process STAR_ALIGN {
         touch ${prefix}.out.sam
         touch ${prefix}.Signal.UniqueMultiple.str1.out.wig
         touch ${prefix}.Signal.UniqueMultiple.str1.out.bg
+        touch ${prefix}.Signal.Unique.*.out.wig
+        touch ${prefix}.Signal.Unique.*.out.bg
         touch ${prefix}.Aligned.sortedByCoord.out.bam.bai
         BAM_SIZE=0
 
