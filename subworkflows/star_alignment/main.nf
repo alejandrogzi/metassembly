@@ -123,6 +123,7 @@ workflow STAR_ALIGNMENT {
 
     emit:
         bams = ch_bam_sorted
+        bedgraph = ch_star_second_pass_out.bedgraph
         junctions = ch_junctions_file
         percent_mapped = ch_log_final.map { meta, log -> [ meta, getStarPercentMapped(params, log) ] }
         log_final = ch_log_final
