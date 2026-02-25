@@ -1,6 +1,6 @@
 process DEACON_DIFF {
     tag "$meta.id"
-    label 'process_single'
+    label 'custom_process_low'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -9,7 +9,7 @@ process DEACON_DIFF {
 
     input:
     tuple val(meta), path(indexA)
-    tuple val(meta), path(indexB)
+    tuple val(meta1), path(indexB)
 
     output:
     tuple val(meta), path("*.idx"), emit: index
@@ -20,7 +20,7 @@ process DEACON_DIFF {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_filtered"
     """
     deacon \\
         index \\
@@ -37,7 +37,7 @@ process DEACON_DIFF {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_filtered"
     """
     touch ${prefix}.idx
 

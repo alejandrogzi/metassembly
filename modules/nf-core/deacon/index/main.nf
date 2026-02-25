@@ -1,6 +1,6 @@
 process DEACON_INDEX {
     tag "$fasta"
-    label 'process_single'
+    label 'custom_process_low'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?

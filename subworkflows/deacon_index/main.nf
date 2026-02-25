@@ -4,10 +4,12 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
+include { DEACON_DIFF } from '../../modules/custom/deacon/diff/main'
 include { DEACON_INDEX } from '../../modules/nf-core/deacon/index/main'
 include { DEACON_MULTI_INDEX } from '../../modules/custom/deacon/multindex/main'
 include { DEACON_MULTI_INDEX as DEACON_INDEX_WITH_BACKGROUND } from '../../modules/custom/deacon/multindex/main'
 include { WGET } from '../../modules/nf-core/wget/main'
+include { WGET as WGET_BACKGROUND } from '../../modules/nf-core/wget/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,8 +28,12 @@ workflow PREPARE_DEACON_INDEX {
         ch_versions = Channel.empty()
         ch_deacon_index = Channel.empty()
 
-        ch_fasta = (fasta instanceof groovyx.gpars.dataflow.DataflowReadChannel) ?
-            fasta.map { file(it, checkIfExists: true) } : Channel.value(file(fasta, checkIfExists: true))
+        fasta.map { 
+          path -> [ 
+            meta: [ id: path.baseName ],
+            path: path 
+          ] 
+        }.set { ch_fasta }
 
         def additional_genomes = multi_index_additional_genome_paths ?: []
 
@@ -55,13 +61,27 @@ workflow PREPARE_DEACON_INDEX {
                     ch_deacon_index = deacon_output.index
                     ch_versions = ch_versions.mix(deacon_output.versions)
                 } else {
-                    def deacon_output = DEACON_INDEX_WITH_BACKGROUND(
+                    def background = params.deacon_background_download_url ?: ''
+
+                    ch_background = WGET_BACKGROUND(
+                        Channel.value(background)
+                        .map { file -> [ meta: [ id: file.tokenize('/')[-1] ], path: file ] }
+                    )
+
+                    ch_deacon_index_unfiltered = DEACON_INDEX(
                         ch_fasta
                     )
-                    ch_deacon_index = deacon_output.index
-                    ch_versions = ch_versions.mix(deacon_output.versions)
+
+                    DEACON_DIFF(
+                        ch_deacon_index_unfiltered.index,
+                        ch_background.outfile
+                    ).index.set { ch_deacon_index }
+                  
+                    ch_versions = ch_versions.mix(ch_background.versions)
+                    ch_versions = ch_versions.mix(ch_deacon_index_unfiltered.versions)
                 }
             } else {
+              // WARN: currently this branch is unreachable when using containers
                 ch_fasta
                     .map { fasta_file ->
                         def genomes = [fasta_file]
@@ -77,6 +97,7 @@ workflow PREPARE_DEACON_INDEX {
                 ch_versions = ch_versions.mix(deacon_output.versions)
             }
         }
+
     emit:
         deacon_index = ch_deacon_index // channel: path(deacon/index)
         versions = ch_versions // channel: [ versions.yml ]

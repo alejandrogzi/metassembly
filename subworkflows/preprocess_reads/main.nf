@@ -97,7 +97,7 @@ workflow PREPROCESS_READS {
 
         ch_deacon_out = DEACON_FILTER(
             ch_trimmed_reads,
-            deacon_index.map { i -> [ [id: "deacon_index"], i ] }
+            deacon_index
         )
 
         ch_versions = ch_versions.mix(DEACON_FILTER.out.versions)
