@@ -42,7 +42,6 @@ workflow METASSEMBLE {
             params.deacon_index_path,
             params.deacon_download_index,
             params.deacon_make_single_index,
-            params.deacon_multi_index_additional_genome_paths,
         )
 
         ch_fastqs = Channel

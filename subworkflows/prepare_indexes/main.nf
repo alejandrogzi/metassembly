@@ -27,7 +27,6 @@ workflow PREPARE_INDEXES {
         index_path                          // val: path(deacon/index)
         download_index                      // val: boolean
         make_single_index                   // val: boolean
-        multi_index_additional_genome_paths // val: list(path(genome))
 
     main:
         ch_versions = Channel.empty()
@@ -61,7 +60,6 @@ workflow PREPARE_INDEXES {
             index_path,
             download_index,
             make_single_index,
-            multi_index_additional_genome_paths,
             ch_fasta
         )
 

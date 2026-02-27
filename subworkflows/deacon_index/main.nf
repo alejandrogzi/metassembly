@@ -22,7 +22,6 @@ workflow PREPARE_DEACON_INDEX {
         index_path
         download_index
         make_single_index
-        multi_index_additional_genome_paths
         fasta
     main:
         ch_versions = Channel.empty()
@@ -35,12 +34,13 @@ workflow PREPARE_DEACON_INDEX {
           ] 
         }.set { ch_fasta }
 
-        def additional_genomes = multi_index_additional_genome_paths ?: []
 
         if (index_path) {
             if (!download_index) {
                 // INFO: return index_path -> user has provided index
                 ch_deacon_index = Channel.value(file(index_path, checkIfExists: true))
+                  .map { file -> [ meta: [ id: file.baseName ], path: file ] }
+
             } else {
                 // INFO: download index from index_path, extract file from tuple
                 ch_deacon_index = WGET(
@@ -81,6 +81,8 @@ workflow PREPARE_DEACON_INDEX {
                     ch_versions = ch_versions.mix(ch_deacon_index_unfiltered.versions)
                 }
             } else {
+              def additional_genomes = params.deacon_multi_index_additional_genome_paths ?: []
+
               // WARN: currently this branch is unreachable when using containers
                 ch_fasta
                     .map { fasta_file ->
