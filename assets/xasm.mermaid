@@ -1,0 +1,139 @@
+flowchart LR
+
+  %% ---------- Inputs ----------
+  subgraph IN[Inputs]
+    input_dir["Input FASTQ directory"]
+    genome["Genome<br/>(FASTA / 2bit / gz)"]
+    annotation["Annotation<br/>(GTF / GFF / BED / gz, optional)"]
+    splice_scores["IsoTools splice score dir<br/>(optional)"]
+  end
+
+  %% ---------- Prepare indexes ----------
+  subgraph IDX[PREPARE_INDEXES]
+    GENEPRED_LINT["GENEPRED_LINT"]
+    CHROMSIZE["CHROMSIZE"]
+    TWOBIT["TWOBIT_TO_FA<br/>(optional)"]
+    GUNZIP_FASTA["GUNZIP_FASTA<br/>(optional)"]
+    GUNZIP_GTF["GUNZIP_GTF<br/>(optional)"]
+    GXF2BED_IDX["GXF2BED<br/>(if GTF/GFF)"]
+    BED2GTF["BED2GTF<br/>(if BED)"]
+    STAR_GENOME["STAR_GENOMEGENERATE<br/>(optional)"]
+    DEACON_INDEX["DEACON_INDEX<br/>(optional)"]
+    DEACON_DIFF["DEACON_DIFF<br/>(optional)"]
+    star_index["STAR index"]
+    deacon_index["DEACON index"]
+  end
+
+  %% ---------- Preprocess ----------
+  subgraph PRE[PREPROCESS_READS]
+    FQ_LINT_START["FQ_LINT<br/>(optional at start)"]
+    FASTP["FASTP"]
+    FILTER_READS["Filter low-read samples"]
+    FQ_LINT_TRIM["FQ_LINT<br/>(optional after trimming)"]
+    DEACON_FILTER["DEACON_FILTER"]
+    FQ_LINT_DECON["FQ_LINT<br/>(optional after decontam)"]
+    processed_reads["Processed reads"]
+  end
+
+  %% ---------- Alignment ----------
+  subgraph ALN[STAR_ALIGNMENT]
+    STAR_1PASS["STAR_ALIGN<br/>(1st pass)"]
+    JOIN_JUNCTIONS["JOIN_JUNCTIONS"]
+    STAR_2PASS["STAR_ALIGN<br/>(2nd pass)"]
+    bams["Aligned BAMs + BAI"]
+    junctions["Merged junctions"]
+    bedgraph["Coverage bedgraph"]
+  end
+
+  %% ---------- Coverage ----------
+  subgraph COV[COVERAGE]
+    BEDGRAPHTOBIGWIG["BEDGRAPHTOBIGWIG"]
+    WIGGLETOOLS["WIGGLETOOLS_MEDIAN"]
+    WIGTOBIGWIG["UCSC_WIGTOBIGWIG"]
+  end
+
+  %% ---------- Assembly ----------
+  subgraph ASM[ASSEMBLY]
+    GTF_REMOVE_DIRT["GTF_REMOVE_DIRT"]
+    GXF2BED["GXF2BED"]
+    ISOTOOLS_FUSION["ISOTOOLS_FUSION"]
+    ISOTOOLS_ORPHAN["ISOTOOLS_ORPHAN"]
+    ALETSCH["ALETSCH"]
+    RENAME_GTF["RENAME_GTF"]
+    BEAVER["BEAVER"]
+    merged_gtf["Merged assembly GTF"]
+  end
+
+  %% ---------- Outputs ----------
+  subgraph OUT[Outputs]
+    TRANSCRIPTS["Assembled transcripts BED"]
+    joined_bigwig["Median coverage bigWig"]
+  end
+
+  %% ---------- PREPARE_INDEXES wiring ----------
+  genome --> CHROMSIZE
+
+  genome -.-> TWOBIT
+  genome -.-> GUNZIP_FASTA
+
+  TWOBIT --> STAR_GENOME
+  GUNZIP_FASTA --> STAR_GENOME
+  STAR_GENOME --> star_index
+
+  TWOBIT --> DEACON_INDEX
+  GUNZIP_FASTA --> DEACON_INDEX
+  DEACON_INDEX -->|with background subtraction| DEACON_DIFF
+  DEACON_DIFF --> deacon_index
+
+  annotation --> GENEPRED_LINT
+  GENEPRED_LINT --> GXF2BED_IDX
+  GENEPRED_LINT --> BED2GTF
+  GXF2BED_IDX --> STAR_GENOME
+  BED2GTF --> STAR_GENOME
+
+  %% ---------- PREPROCESS wiring ----------
+  input_dir --> FQ_LINT_START
+  FQ_LINT_START --> FASTP
+  FASTP --> FILTER_READS
+  FILTER_READS --> FQ_LINT_TRIM
+  FQ_LINT_TRIM --> DEACON_FILTER
+  deacon_index --> DEACON_FILTER
+  DEACON_FILTER --> FQ_LINT_DECON
+  FQ_LINT_DECON --> processed_reads
+
+  %% ---------- ALIGNMENT wiring ----------
+  processed_reads --> STAR_1PASS
+  star_index --> STAR_1PASS
+  STAR_1PASS --> JOIN_JUNCTIONS
+  JOIN_JUNCTIONS --> junctions
+  junctions --> STAR_2PASS
+  STAR_2PASS --> bams
+  STAR_2PASS --> bedgraph
+
+  %% ---------- COVERAGE wiring ----------
+  bedgraph --> BEDGRAPHTOBIGWIG
+  CHROMSIZE --> BEDGRAPHTOBIGWIG
+  BEDGRAPHTOBIGWIG --> WIGGLETOOLS
+  WIGGLETOOLS --> WIGTOBIGWIG
+  CHROMSIZE --> WIGTOBIGWIG
+
+  %% ---------- ASSEMBLY wiring ----------
+  bams --> ALETSCH
+  ALETSCH --> RENAME_GTF
+  RENAME_GTF --> BEAVER
+  BEAVER --> merged_gtf
+  merged_gtf --> GTF_REMOVE_DIRT
+  GTF_REMOVE_DIRT --> GXF2BED
+  GXF2BED --> ISOTOOLS_FUSION
+  ISOTOOLS_FUSION --> ISOTOOLS_ORPHAN
+
+  %% ---------- Final outputs ----------
+  ISOTOOLS_ORPHAN --> TRANSCRIPTS
+  WIGTOBIGWIG --> joined_bigwig
+
+  %% ---------- Styling ----------x
+  classDef input fill:#fff7e6,stroke:#b7791f,stroke-width:1px;
+  classDef process fill:#eef5ff,stroke:#4a6fa5,stroke-width:1px;
+  classDef output fill:#edfdfd,stroke:#0f766e,stroke-width:1px;
+  classDef optional fill:#f7eefc,stroke:#805ad5,stroke-width:1px;
+  classDef meta fill:#eefcf0,stroke:#2f855a,stroke-width:1px;
