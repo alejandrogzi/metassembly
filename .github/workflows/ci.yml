@@ -27,12 +27,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Nextflow
-        run: |
-          curl -s https://get.nextflow.io | bash
-          mkdir -p "$HOME/.local/bin"
-          mv nextflow "$HOME/.local/bin/nextflow"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install Nextflow 25
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: '25'          # Installs latest 25.x version
 
       - name: Validate Nextflow config
         run: nextflow config -flat . > /dev/null
