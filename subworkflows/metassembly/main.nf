@@ -18,9 +18,6 @@ include { GXF2BED } from '../../modules/custom/gxf2bed/main'
 include { ISOTOOLS_ORPHAN } from '../../modules/custom/isotools/orphan/main'
 include { ISOTOOLS_ORPHAN as ISOTOOLS_ORPHAN_DENOVO } from '../../modules/custom/isotools/orphan/main'
 include { ISOTOOLS_FUSION } from '../../modules/custom/isotools/fusion/main'
-include { ISOTOOLS_TRUNCATION_DETECTOR } from '../../modules/custom/isotools/utr/main'
-include { DETACH_DUPLICATES } from '../../modules/custom/detach/main'
-include { STRIP_OCCURRENCES as STRIP_TRUNCATIONS } from '../../modules/custom/strip/main'
 
 include { GENEPRED_LINT } from '../../modules/custom/genepred/lint/main'
 
@@ -183,21 +180,6 @@ workflow METASSEMBLE {
 
                 ch_full_length_transcripts = ISOTOOLS_ORPHAN_DENOVO.out.hq
             }
-
-            DETACH_DUPLICATES(
-                ch_full_length_transcripts
-            )
-            ch_full_length_transcripts = DETACH_DUPLICATES.out.pass
-            ch_duplicates = DETACH_DUPLICATES.out.duplicates
-
-            ISOTOOLS_TRUNCATION_DETECTOR(
-                ch_full_length_transcripts
-            )
-            STRIP_TRUNCATIONS(
-                ch_full_length_transcripts,
-                ISOTOOLS_TRUNCATION_DETECTOR.out.descriptor,
-                "TRUNCATED"
-            )
 
         } else {
           ch_samplesheet = Channel.empty()
