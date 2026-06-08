@@ -1,0 +1,33 @@
+{
+    "_comment": "Copy this file, fill in your genome paths, and pass it with: nextflow run main.nf -params-file my_params.json",
+    "//1": "── Input / Output + Mandatory inputs ──────────────────────────────────────────────────────",
+    "input_dir":           null,
+    "output_dir":          null,
+    "genome":              null,
+    "annotation":          null,
+    "splice_scores_dir":   null,
+    "repeats":             null,
+
+    "//1a": "── Checkpoint: start from polishing step (skip metassembly) ─────────────────────",
+    "polish_path":         null,
+
+    "//2": "── Linting [optional] ──────────────────────────────────",
+    "fq_skip_linting_at_start":          false,
+    "fq_skip_linting_after_trimming":    true,
+    "fq_skip_linting_after_deacon":      true,
+
+    "//3": "── Decontamination [optional] ───────────────────────────────────────────",
+    "deacon_index_path":                   null,
+    "deacon_download_index":               false,
+    "deacon_make_single_index":            true,
+    "deacon_single_index_use_background":  true,
+
+    "//4": "── Alignment [optional] ──────────────────────────────────",
+    "star_index_path":              null,
+    "star_ignore_gtf_for_index":    false,
+    "star_ignore_gtf_for_mapping":  true,
+
+    "//5": "── Assembly [optional] ──────────────────────────────────",
+    "skip_assembly":  false
+
+}

@@ -1,5 +1,7 @@
-// Copyright (c) 2025 Alejandro Gonzales-Irribarren <alejandrxgzi@gmail.com>
-// Distributed under the terms of the Apache License, Version 2.0.
+/*
+Copyright (c) 2026 The Hiller Lab at the Senckenberg Gessellschaft für Naturforschung
+Distributed under the terms of the Apache License, Version 2.0.
+*/
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,10 +112,15 @@ workflow METASSEMBLE {
           )
         }
  
+        ch_metassembled_transcripts = Channel.empty()
         if (!skip_assembly) {
           ch_beaver = ASSEMBLY(
               ch_alignment.bams
           )
+
+          ch_beaver.gtf
+            .map { gtf -> [ [ id: gtf.baseName ], gtf ] }
+            .set { ch_metassembled_transcripts }
 
           ch_fastqs_kept
             .join(ch_alignment.bam_size, failOnMismatch: true)                        // (meta, reads, bam_size)
@@ -146,41 +153,6 @@ workflow METASSEMBLE {
             )
             .set { ch_samplesheet }
 
-            GTF_REMOVE_DIRT(
-                ch_beaver.gtf.map { gtf -> [ [ id: gtf.baseName ], gtf ] }
-            )
-
-            GXF2BED(
-                GTF_REMOVE_DIRT.out.gtf
-            )
-
-            ISOTOOLS_FUSION(
-                    GXF2BED.out.bed,
-                    ch_indexes.annotation_bed
-             )
-
-            ch_splice_scores = splice_scores_dir ? Channel.fromPath(splice_scores_dir, checkIfExists: true)
-              .map { it -> [ [ id: it.baseName ], it ] } : Channel.of([[], []])
-
-            ch_full_length_transcripts = Channel.empty()
-            if (annotation) {
-                ISOTOOLS_ORPHAN(
-                    ISOTOOLS_FUSION.out.pass,
-                    ch_indexes.annotation_bed,
-                    ch_splice_scores
-                )
-
-                ch_full_length_transcripts = ISOTOOLS_ORPHAN.out.hq
-            } else {
-                ISOTOOLS_ORPHAN_DENOVO(
-                    GXF2BED.out.bed,
-                    Channel.of([[], []]),
-                    ch_splice_scores
-                )
-
-                ch_full_length_transcripts = ISOTOOLS_ORPHAN_DENOVO.out.hq
-            }
-
         } else {
           ch_samplesheet = Channel.empty()
         }
@@ -188,6 +160,9 @@ workflow METASSEMBLE {
     emit:
         fastqs         = ch_fastqs
         bams           = ch_alignment.bams
+        metassembly    = ch_metassembled_transcripts
+        annotation     = ch_indexes.annotation_bed
+        genome         = ch_indexes.genome
         junctions      = ch_alignment.junctions
         percent_mapped = ch_alignment.percent_mapped
         samplesheet    = ch_samplesheet
