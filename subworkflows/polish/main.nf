@@ -1,0 +1,129 @@
+/*
+Copyright (c) 2026 The Hiller Lab at the Senckenberg Gessellschaft für Naturforschung
+Distributed under the terms of the Apache License, Version 2.0.
+*/
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    IMPORT LOCAL MODULES/SUBWORKFLOWS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+include { GTF_REMOVE_DIRT } from '../../modules/custom/gtf/clean/main'
+include { GXF2BED } from '../../modules/custom/gxf2bed/main'
+include { ISOTOOLS_ORPHAN } from '../../modules/custom/isotools/orphan/main'
+include { ISOTOOLS_ORPHAN as ISOTOOLS_ORPHAN_DENOVO } from '../../modules/custom/isotools/orphan/main'
+include { ISOTOOLS_FUSION } from '../../modules/custom/isotools/fusion/main'
+
+include { XLOCI_INTRON as XLOCI_EXTRACT_INTRONS } from '../../modules/custom/xloci/intron/main.nf'
+include { INTRONIC as IIC_PREDICT_SPLICEOSOME } from '../../modules/custom/intronic/main.nf'
+include { ISOTOOLS_CLASSIFY_INTRON } from '../../modules/custom/isotools/classify/intron/main.nf'
+include { ISOTOOLS_INTRON_RETENTION } from '../../modules/custom/isotools/intron/main.nf'
+include { STRIP_OCCURRENCES as STRIP_RETENTIONS } from '../../modules/custom/strip/main'
+
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    LOCAL SUBWORKFLOWS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+
+workflow POLISH {
+    take:
+        metassembly               // channel: [ meta, gtf ] 
+        genome                    // channel: [ fasta ]
+        annotation                // channel: [ meta, gtf ]
+        repeats                   // path: /path/to/repeats.{bed/gff/gtf}
+        splice_scores_dir         // path: /path/to/splice/scores/dir
+
+    main:
+        ch_versions = Channel.empty()
+        ch_genome = genome.map { genome -> [ [id:genome.baseName], genome ] }
+
+        GTF_REMOVE_DIRT(
+            metassembly
+        )
+
+        GXF2BED(
+            GTF_REMOVE_DIRT.out.gtf
+        )
+
+        ISOTOOLS_FUSION(
+                GXF2BED.out.bed,
+                annotation
+         )
+
+        ch_splice_scores = splice_scores_dir ? Channel.fromPath(splice_scores_dir, checkIfExists: true)
+          .map { it -> [ [ id: it.baseName ], it ] } : Channel.of([[], []])
+
+        ch_full_length_transcripts = Channel.empty()
+        if (annotation) {
+            ISOTOOLS_ORPHAN(
+                ISOTOOLS_FUSION.out.pass,
+                annotation,
+                ch_splice_scores
+            )
+
+            ch_full_length_transcripts = ISOTOOLS_ORPHAN.out.hq
+        } else {
+            ISOTOOLS_ORPHAN_DENOVO(
+                GXF2BED.out.bed, // INFO: because fusion depends on annotation
+                Channel.of([[], []]),
+                ch_splice_scores
+            )
+
+            ch_full_length_transcripts = ISOTOOLS_ORPHAN_DENOVO.out.hq
+        }
+
+
+        XLOCI_EXTRACT_INTRONS(ch_genome, ch_full_length_transcripts)
+        IIC_PREDICT_SPLICEOSOME(XLOCI_EXTRACT_INTRONS.out.tsv)
+      
+        if (repeats) {
+            Channel.value([
+                [ id: "repeats" ],
+                file(repeats, checkIfExists: true)
+            ]).set { ch_repeats }
+        } else {
+            ch_repeats = Channel.value([[:], []])
+        }
+
+        ch_full_length_transcripts
+          .map { meta, bed -> tuple(meta.id, meta, bed) }
+          .join(
+            IIC_PREDICT_SPLICEOSOME.out.iic
+              .map { meta, iic -> tuple(meta.id, meta, iic) }
+          )
+          .map { id, read_meta, bed, iic_meta, iic ->
+            tuple(read_meta, bed, iic)
+          }
+          .set { ch_classify_inputs }
+
+        ISOTOOLS_CLASSIFY_INTRON(
+          ch_classify_inputs,
+          ch_genome,
+          annotation,
+          ch_repeats,
+          ch_splice_scores
+        )
+
+        ISOTOOLS_INTRON_RETENTION(
+          ch_full_length_transcripts,
+          ISOTOOLS_CLASSIFY_INTRON.out.tsv
+        )
+
+       STRIP_RETENTIONS(
+          ch_full_length_transcripts,
+          ISOTOOLS_INTRON_RETENTION.out.descriptor,
+          "RETENTION"
+        )
+
+    emit:
+        hq             = STRIP_RETENTIONS.out.hq
+        retentions     = STRIP_RETENTIONS.out.discard
+        introns        = ISOTOOLS_CLASSIFY_INTRON.out.tsv
+        orphans        = ISOTOOLS_ORPHAN.out.scraps
+        fusions        = ISOTOOLS_FUSION.out.fusion
+        versions       = ch_versions
+}

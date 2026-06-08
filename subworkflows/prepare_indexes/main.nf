@@ -1,5 +1,7 @@
-// Copyright (c) 2025 Alejandro Gonzales-Irribarren <alejandrxgzi@gmail.com>
-// Distributed under the terms of the Apache License, Version 2.0.
+/*
+Copyright (c) 2026 The Hiller Lab at the Senckenberg Gessellschaft für Naturforschung
+Distributed under the terms of the Apache License, Version 2.0.
+*/
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,6 +113,7 @@ workflow PREPARE_INDEXES {
         ch_versions = ch_versions.mix(PREPARE_DEACON_INDEX.out.versions)
 
     emit:
+        genome          = ch_fasta
         star_index      = PREPARE_GENOME_STAR.out.star_index
         deacon_index    = PREPARE_DEACON_INDEX.out.deacon_index
         chrom_sizes     = ch_chrom_sizes
