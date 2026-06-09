@@ -31,7 +31,7 @@ include { STRIP_OCCURRENCES as STRIP_RETENTIONS } from '../../modules/custom/str
 
 workflow POLISH {
     take:
-        metassembly               // channel: [ meta, gtf ] 
+        metassembly               // channel: [ meta, gtf/bed ] 
         genome                    // channel: [ fasta ]
         annotation                // channel: [ meta, gtf ]
         repeats                   // path: /path/to/repeats.{bed/gff/gtf}
@@ -41,16 +41,19 @@ workflow POLISH {
         ch_versions = Channel.empty()
         ch_genome = genome.map { genome -> [ [id:genome.baseName], genome ] }
 
-        GTF_REMOVE_DIRT(
-            metassembly
-        )
+        ch_metassembly = metassembly.branch { meta, f ->
+            gtf: f.name.endsWith('.gtf')
+            bed: f.name.endsWith('.bed')
+        }
 
-        GXF2BED(
-            GTF_REMOVE_DIRT.out.gtf
-        )
+        GTF_REMOVE_DIRT ( ch_metassembly.gtf )
+        GXF2BED         ( GTF_REMOVE_DIRT.out.gtf )
+
+        // only one branch carries data per run; the empty one spawns no tasks
+        ch_cleaned_transcripts = GXF2BED.out.bed.mix( ch_metassembly.bed )
 
         ISOTOOLS_FUSION(
-                GXF2BED.out.bed,
+                ch_cleaned_transcripts,
                 annotation
          )
 
