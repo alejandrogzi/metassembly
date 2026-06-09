@@ -197,6 +197,8 @@ workflow FULL_RUN {
 workflow FROM_POLISHING {
     // validateFromPolishing()
 
+    ch_versions = Channel.empty()
+
     def genome_file = file(params.genome, checkIfExists: true)
     def genome_path = genome_file.toString()
 
