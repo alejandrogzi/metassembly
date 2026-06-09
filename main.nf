@@ -194,7 +194,7 @@ workflow FULL_RUN {
 }
 
 // ── Checkpoint: start from polishing step (skip metassembly) ─────────────────────
-workflow FORM_POLISHING {
+workflow FROM_POLISHING {
     // validateFromPolishing()
 
     def genome_file = file(params.genome, checkIfExists: true)
