@@ -31,7 +31,7 @@ process ISOTOOLS_INTRON_RETENTION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-intron: \$( iso-intron --version | sed 's/iso-intron //g' )
+        iso-intron: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 
@@ -41,7 +41,7 @@ process ISOTOOLS_INTRON_RETENTION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-intron: \$( iso-intron --version | sed 's/iso-intron //g' )
+        iso-intron: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 }

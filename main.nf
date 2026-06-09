@@ -216,7 +216,7 @@ workflow FROM_POLISHING {
     }
 
     // INFO: preparing annotation 
-    if (params.annotation.endsWith('.gz') || parmas.annotation.endsWith('.gtf')) {
+    if (params.annotation.endsWith('.gz') || params.annotation.endsWith('.gtf')) {
       Channel.value(file(params.annotation, checkIfExists: true))
         .map { it -> [ [ id: it.baseName ], it ] }
         .set { ch_gtf }
@@ -253,7 +253,8 @@ workflow FROM_POLISHING {
     }
 
     POLISH (
-        params.polish_path,
+        Channel.fromPath(params.polish_path, checkIfExists: true)
+            .map { it -> [ [ id: it.baseName ], it ] },
         ch_fasta,
         ch_bed,
         params.repeats,

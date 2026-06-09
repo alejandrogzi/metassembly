@@ -52,7 +52,7 @@ process ISOTOOLS_ORPHAN {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-orphan: \$( iso-orphan --version | sed 's/iso-orphan //g' )
+        iso-orphan: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 
@@ -63,7 +63,7 @@ process ISOTOOLS_ORPHAN {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-orphan: \$( iso-orphan --version | sed 's/iso-orphan //g' )
+        iso-orphan: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 }

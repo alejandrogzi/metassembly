@@ -55,7 +55,7 @@ process ISOTOOLS_FUSION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-fusion: \$( iso-fusion --version | sed 's/iso-fusion //g' )
+        iso-fusion: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 
@@ -66,7 +66,7 @@ process ISOTOOLS_FUSION {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-fusion: \$( iso-fusion --version | sed 's/iso-fusion //g' )
+        iso-fusion: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 }

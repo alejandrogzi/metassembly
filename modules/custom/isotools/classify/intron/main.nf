@@ -41,7 +41,7 @@ process ISOTOOLS_CLASSIFY_INTRON {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-classify: \$( iso-classify --version | sed 's/iso-classify //g' )
+        isotools classify: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 
@@ -52,7 +52,7 @@ process ISOTOOLS_CLASSIFY_INTRON {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iso-classify: \$( iso-classify --version | sed 's/iso-classify //g' )
+        isotools classify: \$( isotools --version | sed 's/isotools //g' )
     END_VERSIONS
     """
 }
