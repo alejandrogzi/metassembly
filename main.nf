@@ -43,7 +43,7 @@ if (params.help) {
     Pass all parameters from a JSON file (replaces old --params_from_file):
         nextflow run main.nf -params-file my_params.json
 
-    Required parameters (full run + fill/clean):
+    Required parameters (full run) :
         --input_dir           PATH    Path to input directory (fastqs)
         --genome              PATH    Path to genome file (fasta/2bit)
         --annotation          PATH    Path to annotation file (gtf/gff/bed) [defines STAR + iso-orphan inputs]
@@ -271,11 +271,11 @@ workflow FROM_POLISHING {
 workflow XASM {
     if (params.from == "polish") {
         // ── Checkpoint: start from polishing step (skip metassembly) ─────────────────────
-        log.info "Resuming from ${params.from} checkpoint — skipping LASTZ + chain building"
+        log.info "Resuming from ${params.from} checkpoint — skipping meta-assembly"
         FROM_POLISHING()
     } else {
         // ── Default: full pipeline ─────────────────────────────────────────────────
-        log.info "Starting full pipeline — skipping checkpoints"
+        log.info "Starting full pipeline — skipping checkpoints [polishing]"
         FULL_RUN()
     }
 }
