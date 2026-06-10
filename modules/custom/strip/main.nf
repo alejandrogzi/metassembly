@@ -35,7 +35,7 @@ process STRIP_OCCURRENCES {
     awk 'NR==FNR {ids[\$1]; next} \$4 in ids' - ${bed} \
     > ${prefix}.striped.bed || [[ \$? == 1 ]]
 
-    if [[ ! -s ${prefix}.hq.bed ]]; then
+    if [[ ! -s ${prefix}.striped.bed ]]; then
         rm ${prefix}.striped.bed
     fi
 
@@ -52,7 +52,7 @@ process STRIP_OCCURRENCES {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.hq.bed
+    touch ${prefix}.striped.bed
     touch ${prefix}.discard.bed
 
     cat <<-END_VERSIONS > versions.yml
