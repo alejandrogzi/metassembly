@@ -33,6 +33,7 @@ process ISOTOOLS_CLASSIFY_INTRON {
         --sequence $genome \\
         --toga $annotation \\
         --prefix ${prefix} \\
+        --intron-track \\
         $spliceai \\
         $repeats \\
         $iic \\
