@@ -13,7 +13,7 @@ process STRIP_OCCURRENCES {
     val hint
 
     output:
-    tuple val(meta), path("*.hq.bed"),   optional: true, emit: hq
+    tuple val(meta), path("*.striped.bed"),   optional: true, emit: hq
     tuple val(meta2), path("*.discard.bed"),    optional: true, emit: discard
     path "versions.yml",                           emit: versions
 
@@ -52,8 +52,7 @@ process STRIP_OCCURRENCES {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.striped.bed
-    touch ${prefix}.discard.bed
+    touch *.bed
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

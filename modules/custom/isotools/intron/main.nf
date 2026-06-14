@@ -27,6 +27,7 @@ process ISOTOOLS_INTRON_RETENTION {
         --introns $introns \\
         --query $bed \\
         --threads ${task.cpus} \\
+        --recover \\
         --prefix ${prefix}
 
     cat <<-END_VERSIONS > versions.yml

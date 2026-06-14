@@ -20,6 +20,10 @@ include { INTRONIC as IIC_PREDICT_SPLICEOSOME } from '../../modules/custom/intro
 include { ISOTOOLS_CLASSIFY_INTRON } from '../../modules/custom/isotools/classify/intron/main.nf'
 include { ISOTOOLS_INTRON_RETENTION } from '../../modules/custom/isotools/intron/main.nf'
 include { STRIP_OCCURRENCES as STRIP_RETENTIONS } from '../../modules/custom/strip/main'
+include { STRIP_OCCURRENCES as STRIP_STRONG_RTS } from '../../modules/custom/strip/main'
+include { STRIP_OCCURRENCES as STRIP_WEAK_RTS } from '../../modules/custom/strip/main'
+include { STRIP_OCCURRENCES as STRIP_ARTIFACTS } from '../../modules/custom/strip/main'
+include { PUBLISH as PUBLISH_FINAL_TRANSCRIPTS } from '../../modules/custom/publish/main'
 
 
 /*
@@ -121,10 +125,32 @@ workflow POLISH {
           ISOTOOLS_INTRON_RETENTION.out.descriptor,
           "RETENTION"
         )
+       STRIP_STRONG_RTS(
+          STRIP_RETENTIONS.out.hq.map { meta, bed -> [ [ id: meta.id + '_no_retentions' ], bed ] },
+          ISOTOOLS_INTRON_RETENTION.out.descriptor,
+          "HAS_STRONG_RT"
+       )
+       STRIP_WEAK_RTS(
+          STRIP_STRONG_RTS.out.hq.map { meta, bed -> [ [ id: meta.id + '_no_strong_rts' ], bed ] },
+          ISOTOOLS_INTRON_RETENTION.out.descriptor,
+          "HAS_WEAK_RT"
+       )
+       STRIP_ARTIFACTS(
+          STRIP_WEAK_RTS.out.hq.map { meta, bed -> [ [ id: meta.id + '_no_weak_rts' ], bed ] },
+          ISOTOOLS_INTRON_RETENTION.out.descriptor,
+          "HAS_ARTIFACT"
+       ) 
+
+       PUBLISH_FINAL_TRANSCRIPTS(
+          STRIP_ARTIFACTS.out.hq.map { meta, bed -> [ [ id: meta.id + '_clean' ], bed ] },
+       )
 
     emit:
-        hq             = STRIP_RETENTIONS.out.hq
+        hq             = STRIP_ARTIFACTS.out.hq
         retentions     = STRIP_RETENTIONS.out.discard
+        strong_rts     = STRIP_STRONG_RTS.out.hq
+        weak_rts       = STRIP_WEAK_RTS.out.hq
+        artifacts      = STRIP_ARTIFACTS.out.hq
         introns        = ISOTOOLS_CLASSIFY_INTRON.out.tsv
         orphans        = ISOTOOLS_ORPHAN.out.scraps
         fusions        = ISOTOOLS_FUSION.out.fusion
