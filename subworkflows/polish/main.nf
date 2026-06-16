@@ -25,6 +25,10 @@ include { STRIP_OCCURRENCES as STRIP_WEAK_RTS } from '../../modules/custom/strip
 include { STRIP_OCCURRENCES as STRIP_ARTIFACTS } from '../../modules/custom/strip/main'
 include { PUBLISH as PUBLISH_FINAL_TRANSCRIPTS } from '../../modules/custom/publish/main'
 
+include { SORT_BED as SORT_BED_FL_TRANSCRIPTS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
+
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,6 +69,7 @@ workflow POLISH {
           .map { it -> [ [ id: it.baseName ], it ] } : Channel.of([[], []])
 
         ch_full_length_transcripts = Channel.empty()
+        ch_scraps = Channel.empty()
         if (annotation) {
             ISOTOOLS_ORPHAN(
                 ISOTOOLS_FUSION.out.pass,
@@ -73,6 +78,7 @@ workflow POLISH {
             )
 
             ch_full_length_transcripts = ISOTOOLS_ORPHAN.out.hq
+            ch_scraps = ISOTOOLS_ORPHAN.out.scraps
         } else {
             ISOTOOLS_ORPHAN_DENOVO(
                 GXF2BED.out.bed, // INFO: because fusion depends on annotation
@@ -81,7 +87,15 @@ workflow POLISH {
             )
 
             ch_full_length_transcripts = ISOTOOLS_ORPHAN_DENOVO.out.hq
+            ch_scraps = ISOTOOLS_ORPHAN_DENOVO.out.scraps
         }
+
+        // INFO: checkpoint to sort all beds
+        SORT_BED_FL_TRANSCRIPTS(ch_full_length_transcripts)
+        ch_full_length_transcripts = SORT_BED_FL_TRANSCRIPTS.out.sorted
+
+        SORT_BED_SCRAPS(ch_scraps)
+        SORT_BED_FUSIONS(ISOTOOLS_FUSION.out.fusion)
 
 
         XLOCI_EXTRACT_INTRONS(ch_genome, ch_full_length_transcripts)
@@ -152,7 +166,7 @@ workflow POLISH {
         weak_rts       = STRIP_WEAK_RTS.out.hq
         artifacts      = STRIP_ARTIFACTS.out.hq
         introns        = ISOTOOLS_CLASSIFY_INTRON.out.tsv
-        scraps         = ISOTOOLS_ORPHAN.out.scraps
-        fusions        = ISOTOOLS_FUSION.out.fusion
+        scraps         = SORT_BED_SCRAPS.out.sorted
+        fusions        = SORT_BED_FUSIONS.out.sorted
         versions       = ch_versions
 }
