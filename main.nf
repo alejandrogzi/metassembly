@@ -84,7 +84,9 @@ include { BED2GTF } from './modules/custom/bed2gtf/main'
 include { GXF2BED } from './modules/custom/gxf2bed/main'
 include { GUNZIP as GUNZIP_FASTA } from './modules/custom/gunzip/main'
 include { GUNZIP as GUNZIP_GTF } from './modules/custom/gunzip/main'
+include { SORT_BED } from './modules/custom/sort/main'
 
+include { BEDTOBIGBED } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_HQ } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_RETENTION } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_STRONG_RTS } from './modules/custom/bigtools/bedtobigbed/main'
@@ -192,7 +194,7 @@ workflow FULL_RUN {
     }
 
     if (!params.skip_bb_conversion) {
-        ch_autosql = params.autosql ? file(params.autosql, checkIfExists: true) : Channel.empty()
+        ch_autosql = params.autosql ? file(params.autosql, checkIfExists: true) : Channel.of([])
 
         BEDTOBIGBED_HQ(
             POLISH.out.hq,
@@ -310,6 +312,29 @@ workflow FROM_POLISHING {
     )
 }
 
+// ── Checkpoint: start from bigbed step (skip metassembly + polishing) ─────────────────────
+workflow FROM_BIGBED {
+    // validateFromBigBed()
+
+    ch_versions = Channel.empty()
+
+    def genome_file = file(params.genome, checkIfExists: true)
+    def genome_path = genome_file.toString()
+
+    ch_chrom_sizes = CHROMSIZE([[:], genome_file]).chromsize.map { it[1] }
+    ch_autosql = params.autosql ? file(params.autosql, checkIfExists: true) : Channel.of([])
+    Channel.fromPath("${params.all_bed_path}/*.bed", checkIfExists: true)
+        .map { it -> [ [ id: it.baseName ], it ] }
+        .set { ch_beds }
+
+    SORT_BED(ch_beds)
+    BEDTOBIGBED(
+        SORT_BED.out.sorted,
+        ch_chrom_sizes,
+        ch_autosql.first()
+    )
+}
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -321,9 +346,14 @@ workflow XASM {
         // ── Checkpoint: start from polishing step (skip metassembly) ─────────────────────
         log.info "Resuming from ${params.from} checkpoint — skipping meta-assembly"
         FROM_POLISHING()
-    } else {
+    } else if (params.from == "bigbed") {
+        // ── Checkpoint: start from bigbed step (skip metassembly + polishing) ─────────────────────
+        log.info "Resuming from ${params.from} checkpoint — skipping meta-assembly + polishing"
+        FROM_BIGBED()
+    }
+    else {
         // ── Default: full pipeline ─────────────────────────────────────────────────
-        log.info "Starting full pipeline — skipping checkpoints [polishing]"
+        log.info "Starting full pipeline!"
         FULL_RUN()
     }
 }
@@ -342,11 +372,20 @@ workflow.onComplete {
     if (workflow.success) {
         def results_dir = new File(params.output_dir as String, '10_results')
         def final_beds = results_dir.exists() ? (results_dir.listFiles()?.findAll { it.name.endsWith('.bed') } ?: []) : []
-        log.info "Pipeline completed successfully!"
-        if (final_beds) {
+        if (final_beds) and (params.skip_bb_conversion) {
+            log.info "Pipeline completed successfully!"
             log.info "Final predictions: ${final_beds.collect { it.toString() }.join(', ')}"
         } else {
-            log.warn "Pipeline reported success but final bed file was not produced - check that all steps ran"
+            if (params.from == "bigbed") or (!params.skip_bb_conversion) {
+                def bigbed_dir = new File(params.output_dir as String, '11_bbs')
+                def final_bbs = bigbed_dir.exists() ? (bigbed_dir.listFiles()?.findAll { it.name.endsWith('.bb') } ?: []) : []
+                log.info "Pipeline completed successfully!"
+                if (final_bbs) {
+                    log.info "Final predictions: ${final_bbs.collect { it.toString() }.join(', ')}"
+                }
+            } else {
+              log.warn "Pipeline reported success but final bed file was not produced - check that all steps ran"
+            }
         }
         log.info "Run time   : ${workflow.duration}"
     } else {
