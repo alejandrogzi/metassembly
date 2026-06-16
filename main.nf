@@ -85,6 +85,14 @@ include { GXF2BED } from './modules/custom/gxf2bed/main'
 include { GUNZIP as GUNZIP_FASTA } from './modules/custom/gunzip/main'
 include { GUNZIP as GUNZIP_GTF } from './modules/custom/gunzip/main'
 
+include { BEDTOBIGBED as BEDTOBIGBED_HQ } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_RETENTION } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_STRONG_RTS } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_WEAK_RTS } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_ARTIFACTS } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_FUSIONS } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_SCRAPS } from './modules/custom/bigtools/bedtobigbed/main'
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     VALIDATION
@@ -180,6 +188,46 @@ workflow FULL_RUN {
             METASSEMBLE.out.annotation,
             params.repeats,
             params.splice_scores_dir,
+        )
+    }
+
+    if (!params.skip_bb_conversion) {
+        ch_autosql = params.autosql ? file(params.autosql, checkIfExists: true) : Channel.empty()
+
+        BEDTOBIGBED_HQ(
+            POLISH.out.hq,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_RETENTION(
+            POLISH.out.retentions,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_STRONG_RTS(
+            POLISH.out.strong_rts,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_WEAK_RTS(
+            POLISH.out.weak_rts,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_ARTIFACTS(
+            POLISH.out.artifacts,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_FUSIONS(
+            POLISH.out.fusions,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_SCRAPS(
+            POLISH.out.scraps,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
         )
     }
 

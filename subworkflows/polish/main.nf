@@ -152,7 +152,7 @@ workflow POLISH {
         weak_rts       = STRIP_WEAK_RTS.out.hq
         artifacts      = STRIP_ARTIFACTS.out.hq
         introns        = ISOTOOLS_CLASSIFY_INTRON.out.tsv
-        orphans        = ISOTOOLS_ORPHAN.out.scraps
+        scraps         = ISOTOOLS_ORPHAN.out.scraps
         fusions        = ISOTOOLS_FUSION.out.fusion
         versions       = ch_versions
 }

@@ -166,5 +166,6 @@ workflow METASSEMBLE {
         junctions      = ch_alignment.junctions
         percent_mapped = ch_alignment.percent_mapped
         samplesheet    = ch_samplesheet
+        chrom_sizes    = ch_indexes.chrom_sizes
         versions       = ch_versions
 }

@@ -118,7 +118,7 @@ results/
 ├── 05_coverage/         *bigwig
 ├── 06_beaver/           *gtf
 ├── 07_remove_dirt/      *gtf
-├── 08_gxf2bed/          *bed
+├── 08_gxf2bed/          *bed  <- --from polish checkpoint
 ├── 09_polish/
 │   ├── fusions/          *bed
 │   ├── orphans/          *bed
@@ -126,6 +126,7 @@ results/
 │   ├── iic/              *tsv
 │   └── classify/         *tsv
 ├── 10_final/             *bed
+├── 11_bbs/               *bb
 └── pipeline_info/    timeline, trace, DAG
 ```
 
