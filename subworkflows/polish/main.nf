@@ -97,7 +97,6 @@ workflow POLISH {
         SORT_BED_SCRAPS(ch_scraps)
         SORT_BED_FUSIONS(ISOTOOLS_FUSION.out.fusion)
 
-
         XLOCI_EXTRACT_INTRONS(ch_genome, ch_full_length_transcripts)
         IIC_PREDICT_SPLICEOSOME(XLOCI_EXTRACT_INTRONS.out.tsv)
       

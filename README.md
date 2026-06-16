@@ -125,7 +125,7 @@ results/
 │   ├── intron_sequences/ *tsv
 │   ├── iic/              *tsv
 │   └── classify/         *tsv
-├── 10_final/             *bed
+├── 10_final/             *bed  <- --from bigbed checkpoint
 ├── 11_bbs/               *bb
 └── pipeline_info/    timeline, trace, DAG
 ```
