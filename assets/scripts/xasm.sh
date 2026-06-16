@@ -109,7 +109,11 @@ cat > "${run_dir}/params.json" <<EOF
     "star_ignore_gtf_for_mapping":  true,
 
     "//5": "── Assembly [optional] ──────────────────────────────────",
-    "skip_assembly":  false
+    "skip_assembly":  false.
+
+    "//6: ── Bigbed conversion [optional] ───────────────────────────────────────────",
+    "autosql": null,
+    "skip_bb_conversion": false
 }
 EOF
 
