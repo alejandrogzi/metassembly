@@ -65,9 +65,10 @@ genome=$(echo "$row"   | cut -f2)
 annotation=$(echo "$row" | cut -f3)
 splice_scores_dir=$(echo "$row" | cut -f4)
 repeats=$(echo "$row" | cut -f5)
+prefix=$(echo "$row" | cut -f6)
 
 
-if [[ -z "$regions" || -z "$sequence" ]]; then
+if [[ -z "$input_dir" || -z "$genome" || -z "$annotation" || -z "$splice_scores_dir" || -z "$repeats" || -z "$prefix" ]]; then
     echo "ERROR: could not parse line ${SLURM_ARRAY_TASK_ID} of ${species_list}" >&2
     exit 1
 fi
