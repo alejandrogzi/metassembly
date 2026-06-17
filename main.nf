@@ -310,6 +310,46 @@ workflow FROM_POLISHING {
         params.repeats,
         params.splice_scores_dir,
     )
+
+    if (!params.skip_bb_conversion) {
+        ch_autosql = params.autosql ? file(params.autosql, checkIfExists: true) : Channel.of([])
+
+        BEDTOBIGBED_HQ(
+            POLISH.out.hq,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_RETENTION(
+            POLISH.out.retentions,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_STRONG_RTS(
+            POLISH.out.strong_rts,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_WEAK_RTS(
+            POLISH.out.weak_rts,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_ARTIFACTS(
+            POLISH.out.artifacts,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_FUSIONS(
+            POLISH.out.fusions,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_SCRAPS(
+            POLISH.out.scraps,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+    }
 }
 
 // ── Checkpoint: start from bigbed step (skip metassembly + polishing) ─────────────────────
@@ -370,13 +410,13 @@ workflow {
 
 workflow.onComplete {
     if (workflow.success) {
-        def results_dir = new File(params.output_dir as String, '10_results')
+        def results_dir = new File(params.output_dir as String, '10_final')
         def final_beds = results_dir.exists() ? (results_dir.listFiles()?.findAll { it.name.endsWith('.bed') } ?: []) : []
-        if (final_beds) and (params.skip_bb_conversion) {
+        if (final_beds && params.skip_bb_conversion) {
             log.info "Pipeline completed successfully!"
             log.info "Final predictions: ${final_beds.collect { it.toString() }.join(', ')}"
         } else {
-            if (params.from == "bigbed") or (!params.skip_bb_conversion) {
+            if ((params.from == "bigbed") || (!params.skip_bb_conversion)) {
                 def bigbed_dir = new File(params.output_dir as String, '11_bbs')
                 def final_bbs = bigbed_dir.exists() ? (bigbed_dir.listFiles()?.findAll { it.name.endsWith('.bb') } ?: []) : []
                 log.info "Pipeline completed successfully!"

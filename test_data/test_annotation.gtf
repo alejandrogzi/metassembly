@@ -1,0 +1,5 @@
+chrTest	xasm	gene	101	2850	.	+	.	gene_id "gene1"; gene_name "gene1";
+chrTest	xasm	transcript	101	2850	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_name "gene1";
+chrTest	xasm	exon	101	350	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_name "gene1"; exon_number "1";
+chrTest	xasm	exon	1351	1600	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_name "gene1"; exon_number "2";
+chrTest	xasm	exon	2601	2850	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_name "gene1"; exon_number "3";

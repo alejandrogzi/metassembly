@@ -92,6 +92,9 @@ cat > "${run_dir}/params.json" <<EOF
     "//1a": "── Checkpoint: start from polishing step (skip metassembly) ─────────────────────",
     "polish_path":         null,
 
+    "//1b": "── Checkpoint: start from bigbed step (skip metassembly + polishing) ─────────────────────",
+    "all_bed_path":        null,
+
     "//2": "── Linting [optional] ──────────────────────────────────",
     "fq_skip_linting_at_start":          false,
     "fq_skip_linting_after_trimming":    true,
