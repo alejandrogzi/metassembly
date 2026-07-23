@@ -16,6 +16,7 @@ process ISOTOOLS_CLASSIFY_INTRON {
 
     output:
     tuple val(meta), path("*.tsv")      , optional: true, emit: tsv
+    tuple val(meta), path("*.bed")      , optional: true, emit: track
     path "versions.yml"                                 , emit: versions
 
     when:
@@ -50,6 +51,7 @@ process ISOTOOLS_CLASSIFY_INTRON {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     touch ${prefix}.tsv
+    touch *.bed
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
