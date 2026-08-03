@@ -10,6 +10,7 @@
     "prefix":             null,
 
     "//1a": "── Checkpoint: start from polishing step (skip metassembly) ─────────────────────",
+    "from":                null,
     "polish_path":         null,
 
     "//1b": "── Checkpoint: start from bigbed step (skip metassembly + polishing) ─────────────────────",
@@ -30,9 +31,22 @@
     "star_index_path":              null,
     "star_ignore_gtf_for_index":    false,
     "star_ignore_gtf_for_mapping":  true,
+    "star_twopass_junctions_file":  null,
 
     "//5": "── Assembly [optional] ──────────────────────────────────",
     "skip_assembly":  false,
+    "assembly_by_chr": true,
+    "assembly_exclude_chromosomes": [],
+    "transmeta_use_annotation": true,
+    "assembler": "aletsch",
+    "metassembler": "beaver",
+    "aletsch_fallback_insert_size": null,
+    "aletsch_fallback_insert_std": 10,
+    "stringtie3_enable_nascent_assembly": false,
+    "stringtie3_include_nascent_rna": false,
+
+    "//5a": "── Polishing [optional] ──────────────────────────────────",
+    "do_twopass_polish": false,
 
     "//6": "── Bigbed conversion [optional] ───────────────────────────────────────────",
     "autosql": null,
