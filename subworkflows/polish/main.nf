@@ -18,8 +18,11 @@ include { ISOTOOLS_FUSION } from '../../modules/custom/isotools/fusion/main'
 include { XLOCI_INTRON as XLOCI_EXTRACT_INTRONS } from '../../modules/custom/xloci/intron/main.nf'
 include { INTRONIC as IIC_PREDICT_SPLICEOSOME } from '../../modules/custom/intronic/main.nf'
 include { ISOTOOLS_CLASSIFY_INTRON } from '../../modules/custom/isotools/classify/intron/main.nf'
+include { ISOTOOLS_CLASSIFY_INTRON as ISOTOOLS_CLASSIFY_INTRON_TWOPASS } from '../../modules/custom/isotools/classify/intron/main.nf'
 include { ISOTOOLS_INTRON_RETENTION } from '../../modules/custom/isotools/intron/main.nf'
+include { ISOTOOLS_INTRON_RETENTION as ISOTOOLS_INTRON_RETENTION_TWOPASS } from '../../modules/custom/isotools/intron/main.nf'
 include { STRIP_OCCURRENCES as STRIP_RETENTIONS } from '../../modules/custom/strip/main'
+include { STRIP_OCCURRENCES as STRIP_RETENTIONS_TWOPASS } from '../../modules/custom/strip/main'
 include { STRIP_OCCURRENCES as STRIP_STRONG_RTS } from '../../modules/custom/strip/main'
 include { STRIP_OCCURRENCES as STRIP_WEAK_RTS } from '../../modules/custom/strip/main'
 include { STRIP_OCCURRENCES as STRIP_ARTIFACTS } from '../../modules/custom/strip/main'
@@ -28,6 +31,7 @@ include { PUBLISH as PUBLISH_FINAL_TRANSCRIPTS } from '../../modules/custom/publ
 include { SORT_BED as SORT_BED_FL_TRANSCRIPTS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
 
 
 /*
@@ -36,6 +40,82 @@ include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
+workflow POLISH_TWOPASS {
+    take:
+        hq                       // channel: [ meta, bed ] clean first-pass HQ
+        retentions               // channel: [ meta, bed ] first-pass retention discards
+        intron_iic               // channel: [ meta, iic ] first-pass intronIC evidence
+        genome                   // channel: [ meta, fasta ]
+        annotation               // channel: [ meta, bed ]
+        repeats                  // channel: [ meta, bed ]
+        splice_scores            // channel: [ meta, bigwig directory ]
+
+    main:
+        // STRIP_OCCURRENCES appends `.discard` to the metadata id. Join on
+        // the original id to reuse the IIC calculated before retention filtering.
+        ch_classify_inputs = retentions
+            .map { meta, bed ->
+                def source_id = meta.id.replaceFirst(/\.discard$/, '')
+                tuple(source_id, meta + [ id: "${source_id}_twopass" ], bed)
+            }
+            .join(
+                intron_iic.map { meta, iic -> tuple(meta.id, meta, iic) }
+            )
+            .map { id, retention_meta, bed, iic_meta, iic ->
+                tuple(retention_meta, bed, iic)
+            }
+
+        ISOTOOLS_CLASSIFY_INTRON_TWOPASS(
+            ch_classify_inputs,
+            genome,
+            annotation,
+            repeats,
+            splice_scores
+        )
+
+        ch_retention_candidates = ch_classify_inputs.map { meta, bed, iic -> [meta, bed] }
+
+        ISOTOOLS_INTRON_RETENTION_TWOPASS(
+            ch_retention_candidates,
+            ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.tsv
+        )
+
+        STRIP_RETENTIONS_TWOPASS(
+            ch_retention_candidates,
+            ISOTOOLS_INTRON_RETENTION_TWOPASS.out.descriptor,
+            'RETENTION'
+        )
+
+        // First-pass HQ and its retention discards are disjoint. Mixing and
+        // sorting also falls back naturally to HQ when there are no retentions.
+        ch_merged_hq = hq
+            .mix(STRIP_RETENTIONS_TWOPASS.out.hq)
+            .map { meta, bed -> bed }
+            .collectFile(
+                name: "${params.prefix ?: 'polish'}.twopass.bed",
+                newLine: false
+            )
+            .map { bed -> [ [ id: "${bed.baseName}_clean" ], bed ] }
+
+        SORT_BED_TWOPASS(ch_merged_hq)
+
+        ch_versions = ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.versions
+            .mix(ISOTOOLS_INTRON_RETENTION_TWOPASS.out.versions)
+            .mix(STRIP_RETENTIONS_TWOPASS.out.versions)
+            .mix(SORT_BED_TWOPASS.out.versions)
+
+    emit:
+        hq          = SORT_BED_TWOPASS.out.sorted
+        retentions  = STRIP_RETENTIONS_TWOPASS.out.discard
+        introns     = ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.tsv
+        versions    = ch_versions
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    WORKFLOW
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
 
 workflow POLISH {
     take:
@@ -44,6 +124,7 @@ workflow POLISH {
         annotation                // channel: [ meta, gtf ]
         repeats                   // path: /path/to/repeats.{bed/gff/gtf}
         splice_scores_dir         // path: /path/to/splice/scores/dir
+        do_twopass_polish         // val: boolean
 
     main:
         ch_versions = Channel.empty()
@@ -154,13 +235,34 @@ workflow POLISH {
           "HAS_ARTIFACT"
        ) 
 
-       PUBLISH_FINAL_TRANSCRIPTS(
-          STRIP_ARTIFACTS.out.hq.map { meta, bed -> [ [ id: meta.id + '_clean' ], bed ] },
-       )
+       STRIP_ARTIFACTS.out.hq
+         .map { meta, bed -> [ [ id: meta.id + '_clean' ], bed ] }
+         .set { ch_fl_hq_transcripts }
+
+      ch_final_hq = ch_fl_hq_transcripts
+      ch_final_retentions = STRIP_RETENTIONS.out.discard
+
+      if (do_twopass_polish) {
+         POLISH_TWOPASS(
+            ch_fl_hq_transcripts,
+            STRIP_RETENTIONS.out.discard,
+            IIC_PREDICT_SPLICEOSOME.out.iic,
+            ch_genome,
+            annotation,
+            ch_repeats,
+            ch_splice_scores
+         )
+
+         ch_final_hq = POLISH_TWOPASS.out.hq
+         ch_final_retentions = POLISH_TWOPASS.out.retentions
+         ch_versions = ch_versions.mix(POLISH_TWOPASS.out.versions)
+      }
+
+      PUBLISH_FINAL_TRANSCRIPTS(ch_final_hq)
 
     emit:
-        hq             = STRIP_ARTIFACTS.out.hq
-        retentions     = STRIP_RETENTIONS.out.discard
+        hq             = ch_final_hq
+        retentions     = ch_final_retentions
         strong_rts     = STRIP_STRONG_RTS.out.hq
         weak_rts       = STRIP_WEAK_RTS.out.hq
         artifacts      = STRIP_ARTIFACTS.out.hq
