@@ -1,21 +1,20 @@
 process BEAVER {
-    tag "meta_assembly"
+    tag "$meta.id"
     label 'process_long_high'
 
-    conda "${moduleDir}/environment.yml"
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         '' : 
         'ghcr.io/alejandrogzi/beaver:latest' }"
 
     input:
-    path gtfs
+    tuple val(meta), path(gtfs)
 
     output:
-    path "beaver_output/*gtf"        , emit: gtf
-    path "beaver_output/*csv"        , emit: csv
-    path "gtf_list.txt"              , emit: gtf_list
-    path "versions.yml"              , emit: versions
+    tuple val(meta), path("beaver_output/*gtf"), emit: gtf
+    tuple val(meta), path("beaver_output/*csv"), emit: csv
+    path "*.txt"                               , emit: gtf_list
+    path "versions.yml"                        , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -25,7 +24,7 @@ process BEAVER {
     def prefix = task.ext.prefix ?: "beaver_output"
     """
     for gtf in ${gtfs}; do
-        echo "\$gtf" >> gtf_list.txt
+        echo "\$gtf" >> ${prefix}.gtf_list.txt
     done
 
     # Create output directory
@@ -33,7 +32,7 @@ process BEAVER {
 
     # Run Beaver
     beaver \\
-        gtf_list.txt \\
+        ${prefix}.gtf_list.txt \\
         ${prefix} \\
         -t ${task.cpus} \\
         $args
@@ -65,7 +64,7 @@ process BEAVER {
     def prefix = task.ext.prefix ?: "beaver_output"
     """
     mkdir -p beaver_output
-    touch gtf_list.txt
+    touch ${prefix}.gtf_list.txt
     touch beaver_output/${prefix}.gtf
     touch beaver_output/${prefix}.csv
 
