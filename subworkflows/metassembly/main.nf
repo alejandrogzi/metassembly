@@ -76,7 +76,7 @@ workflow METASSEMBLE {
                     [
                         id: id,
                         single_end: reads.size() == 1,
-                        strandedness: "paired_end"
+                        strandedness: "unstranded"
                     ],
                     reads
                 ]
@@ -114,12 +114,13 @@ workflow METASSEMBLE {
  
         ch_metassembled_transcripts = Channel.empty()
         if (!skip_assembly) {
-          ch_beaver = ASSEMBLY(
-              ch_alignment.bams
+          ch_metassembly = ASSEMBLY(
+              ch_alignment.bams,
+              ch_indexes.annotation_gtf
           )
 
-          ch_beaver.gtf
-            .map { gtf -> [ [ id: gtf.baseName ], gtf ] }
+          ch_metassembly.gtf
+            .map { meta, gtf -> [ [ id: gtf.baseName ], gtf ] }
             .set { ch_metassembled_transcripts }
 
           ch_fastqs_kept
@@ -128,7 +129,7 @@ workflow METASSEMBLE {
             .join(ch_processed_reads.deacon_discarded_seqs, failOnMismatch: true)     // (+ kept)
             .join(ch_processed_reads.num_trimmed_reads, failOnMismatch: true)         // (+ num_trimmed_reads)
             .join(ch_processed_reads.num_trimmed_reads_percent, failOnMismatch: true) // (+ num_trimmed_reads_percent)
-            .join(ch_beaver.counts, failOnMismatch: true)                             // (+ assembled_count)
+            .join(ch_metassembly.counts, failOnMismatch: true)                        // (+ assembled_count)
             .map {
                   meta,
                   reads,
@@ -161,7 +162,8 @@ workflow METASSEMBLE {
         fastqs         = ch_fastqs
         bams           = ch_alignment.bams
         metassembly    = ch_metassembled_transcripts
-        annotation     = ch_indexes.annotation_bed
+        annotation_bed = ch_indexes.annotation_bed
+        annotation_gtf = ch_indexes.annotation_gtf
         genome         = ch_indexes.genome
         junctions      = ch_alignment.junctions
         percent_mapped = ch_alignment.percent_mapped
