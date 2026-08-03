@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.0.20] - 2026-08-04
+
+### Added
+
+- Per-chromosome assembly (`assembly_by_chr`, enabled by default). Aligned BAMs are now split by reference sequence with the new `BAMSPLIT_CHROM` module, local assembly and metassembly run per chromosome, and the results are merged into a single metassembly GTF with globally unique transcript IDs. The `assembly_exclude_chromosomes` parameter lets you keep chromosomes in the alignment while omitting them from the assembly fan-out.
+- StringTie3 as an alternative local assembler (`assembler = "stringtie3"`), including nascent RNA options (`stringtie3_enable_nascent_assembly`, `stringtie3_include_nascent_rna`).
+- TransMeta as an alternative meta-assembler (`metassembler = "transmeta"`), with annotation-guided merging controlled by `transmeta_use_annotation`.
+- Two-pass polishing (`do_twopass_polish`). Retention discards from the first pass are reclassified against the first-pass intronIC evidence, UTR retentions are ignored in the second pass, and rescued transcripts are merged back into the clean HQ set. Output lands under `09_polish/twopass/`.
+- `star_twopass_junctions_file` parameter to provide a pre-curated junction file (STAR sjdb 4-column format), which skips the STAR first pass and the junction-merging step entirely.
+- GFF support: annotations in `.gff` format are now accepted alongside GTF and BED.
+- Aletsch insert-size fallbacks (`aletsch_fallback_insert_size`, `aletsch_fallback_insert_std`) that replace a zero profiled insert-size mean when compact per-chromosome inputs fall below Aletsch's internal sample minimum.
+- `--intron-track` output for the iso-classify process, emitted during the 0.0.19b milestone.
+- End-to-end test suite: a committed 256 KB synthetic fixture (`test_data/e2e/`) with reads, genome, annotation, splice scores, and repeats; `tests/e2e/run.sh` and `tests/e2e/verify.py` with golden counts; new `test`, `test-sb`, and `test-tm` profiles (the old small fixture is now `test-polish`); and a nightly end-to-end workflow (`e2e-nightly.yml`) alongside the expanded CI smoke test.
+- Pinned container image digests for the beaver, bed2gtf, chromsize, genepred, isox-py, xloci, and bamsplit modules to make runs reproducible.
+- New `REMOVE_BAMS` and `RENAME_BAM` housekeeping modules, and a README logo via `.gitattributes`.
+
+### Changed
+
+- Version bumped to `0.0.20` in the pipeline manifest, which now also lists the authors.
+- Beaver and TransMeta outputs are prefixed per chromosome (`<prefix>_<chr>` when `assembly_by_chr` is on) so per-chromosome results can be traced back to their source sample.
+- Aletsch now derives its library type from `single_end`/`paired_end` metadata rather than the strandedness field, and supports a per-chromosome `-l` flag. Transcript counts are computed with `awk` instead of `grep -w`.
+- The polished GTF/BED conversion path now also handles GFF input in `prepare_indexes` and the `--from polish` checkpoint.
+- STAR alignment flows straight to the second pass with a pre-curated junction file when `star_twopass_junctions_file` is set.
+- `params.json` was reorganized with a dedicated assembly section and a new polishing section (`from`, `assembly_by_chr`, `assembler`, `metassembler`, `do_twopass_polish`, etc.).
+- CI pins Nextflow `25.10.0`, validates every test profile, and runs the default end-to-end smoke test on each push.
+
+### Fixed
+
+- Aletsch runs on single-chromosome chunked input: when a BAM contains only one populated chromosome, the process now selects that chromosome from the original full BAM instead of consuming the split chunk, which Aletsch 1.1.x would otherwise fail to flush.
+- RENAME_GTF no longer deletes the input GTF (or its realpath target) after renaming.
+- Stub behavior of the Aletsch module now produces the expected GTF output shape.
+- Default strandedness metadata is reported as `unstranded` rather than `paired_end`.
+
+---
+
 ## [0.0.19] - 2026-07-23
 
 ### Added

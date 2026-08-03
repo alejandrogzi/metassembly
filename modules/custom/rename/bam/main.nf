@@ -1,20 +1,20 @@
 // Copyright (c) 2025 Alejandro Gonzales-Irribarren <alejandrxgzi@gmail.com>
 // Distributed under the terms of the Apache License, Version 2.0.
 
-process RENAME_GTF {
+process RENAME_BAM {
     tag "$meta.id"
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/python:3.10.2' :
+        '' :
         'biocontainers/python:3.10.2' }"
 
     input:
-    tuple val(meta), path(gtf)
+    tuple val(meta), path(bam)
 
     output:
-    tuple val(meta), path("*.gtf"), emit: gtf
+    tuple val(meta), path("*.bam"), emit: bam
     path "versions.yml", emit: versions
 
     when:
@@ -24,27 +24,22 @@ process RENAME_GTF {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    rename_gtf.py \\
-        -g ${gtf} \\
-        -p ${prefix} \\
-        -o ${prefix}.renamed.gtf
+    ln -sf ${bam} ${prefix}.bam
 
-    cat <<-END_VERSIONS > versions.yml  
+    cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        python: \$(python --version | sed 's/Python //')
-        rename_gtf.py: \$(rename_gtf.py --version | sed 's/rename_gtf.py //')
+        ln: \$(ln --version | head -n1 | sed 's/^.* //')
     END_VERSIONS
     """
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.renamed.gtf
+    touch ${prefix}.bam
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        python: \$(python --version | sed 's/Python //')
-        rename_gtf.py: \$(rename_gtf.py --version | sed 's/rename_gtf.py //')
+        ln: "stub"
     END_VERSIONS
     """
 }

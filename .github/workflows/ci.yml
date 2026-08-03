@@ -30,7 +30,14 @@ jobs:
       - name: Install Nextflow 25
         uses: nf-core/setup-nextflow@v1
         with:
-          version: '25'          # Installs latest 25.x version
+          version: '25.10.0'
 
-      - name: Validate Nextflow config
-        run: nextflow config -flat . > /dev/null
+      - name: Validate Nextflow profiles
+        run: |
+          for profile in test test-sb test-tm test-polish; do
+            nextflow config -flat . -profile "$profile" > /dev/null
+          done
+
+      - name: Run default end-to-end smoke test
+        timeout-minutes: 30
+        run: tests/e2e/run.sh test

@@ -54,6 +54,7 @@ if (params.help) {
         --repeats             PATH      Path to repeats.{bed/gff/gtf}
         --from                STRING    Checkpoint to resume from [options: polish]
         --polish_path         PATH      Path to polished assembly [required if --from polish]
+        --do_twopass_polish   BOOLEAN   Re-review retention discards with --ignore-utr [default: false]
 
     Profiles:
         local       Run on local machine (default)
@@ -159,14 +160,29 @@ workflow PIPELINE_COMPLETION {
         log.error "ERROR: Pipeline failed. Please refer to github issues: https://github.com/alejandrogzi/metassembly/issues"
     }
 
-    workflow.onComplete {
-        log.info "\nPipeline completed successfully!"
-    }
 }
 
 // ── Default: full pipeline ─────────────────────────────────────────────────
 workflow FULL_RUN {
-    // validateRun()
+
+    log.info """
+    > xasm v${workflow.manifest.version}
+    > Meta-assemble bulk RNA-seq datasets at scale
+    > The Hiller Lab at the Senckenberg Research Institute
+
+    Authors: ${workflow.manifest.author}
+    Github:  ${workflow.manifest.homePage}
+
+      Input     : ${params.input_dir}
+      Genome    : ${params.genome}
+      Annotation: ${params.annotation}
+      Outdir    : ${params.output_dir}
+      Prefix    : ${params.prefix}
+      Profile   : ${workflow.profile}
+    """.stripIndent()
+
+
+    validateRun()
 
     METASSEMBLE (
         params.input_dir,
@@ -187,9 +203,10 @@ workflow FULL_RUN {
         POLISH (
             METASSEMBLE.out.metassembly,
             METASSEMBLE.out.genome,
-            METASSEMBLE.out.annotation,
+            METASSEMBLE.out.annotation_bed,
             params.repeats,
             params.splice_scores_dir,
+            params.do_twopass_polish,
         )
     }
 
@@ -266,7 +283,7 @@ workflow FROM_POLISHING {
     }
 
     // INFO: preparing annotation 
-    if (params.annotation.endsWith('.gz') || params.annotation.endsWith('.gtf')) {
+    if (params.annotation.endsWith('.gz') || params.annotation.endsWith('.gtf') || params.annotation.endsWith('.gff')) {
       Channel.value(file(params.annotation, checkIfExists: true))
         .map { it -> [ [ id: it.baseName ], it ] }
         .set { ch_gtf }
@@ -309,6 +326,7 @@ workflow FROM_POLISHING {
         ch_bed,
         params.repeats,
         params.splice_scores_dir,
+        params.do_twopass_polish,
     )
 
     if (!params.skip_bb_conversion) {

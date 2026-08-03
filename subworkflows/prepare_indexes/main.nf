@@ -14,8 +14,8 @@ include { PREPARE_DEACON_INDEX } from '../deacon_index/main'
 
 include { TWOBIT_TO_FA } from '../../modules/custom/ucsc/twobittofa/main'
 include { CHROMSIZE } from '../../modules/custom/chromsize/main'
-include { BED2GTF } from '../../modules/custom/bed2gtf/main'
-include { GXF2BED } from '../../modules/custom/gxf2bed/main'
+include { BED2GTF as BED2GTF_CONVERT_ANNOTATION } from '../../modules/custom/bed2gtf/main'
+include { GXF2BED as GXF2BED_CONVERT_ANNOTATION } from '../../modules/custom/gxf2bed/main'
 
 include { GUNZIP as GUNZIP_FASTA } from '../../modules/custom/gunzip/main'
 include { GUNZIP as GUNZIP_GTF } from '../../modules/custom/gunzip/main'
@@ -59,7 +59,7 @@ workflow PREPARE_INDEXES {
         }
 
         // INFO: preparing annotation 
-        if (annotation.endsWith('.gz') || annotation.endsWith('.gtf')) {
+        if (annotation.endsWith('.gz') || annotation.endsWith('.gtf') || annotation.endsWith('.gff')) {
           Channel.value(file(annotation, checkIfExists: true))
             .map { it -> [ [ id: it.baseName ], it ] }
             .set { ch_gtf }
@@ -72,24 +72,24 @@ workflow PREPARE_INDEXES {
           }
 
           // INFO: converting to bed
-          GXF2BED(ch_gtf)
-          ch_bed = GXF2BED.out.bed
+          GXF2BED_CONVERT_ANNOTATION(ch_gtf)
+          ch_bed = GXF2BED_CONVERT_ANNOTATION.out.bed
 
-          ch_versions = ch_versions.mix(GXF2BED.out.versions)
+          ch_versions = ch_versions.mix(GXF2BED_CONVERT_ANNOTATION.out.versions)
         } else if (annotation.endsWith('.bed')) {
           // INFO: converting to gtf
           Channel.value(file(annotation, checkIfExists: true))
             .map { it -> [ [ id: it.baseName ], it ] }
             .set { ch_bed }
 
-          BED2GTF(
+          BED2GTF_CONVERT_ANNOTATION(
             ch_bed,
             Channel.of([[], []])
           )
 
-          ch_gtf = BED2GTF.out.gtf
+          ch_gtf = BED2GTF_CONVERT_ANNOTATION.out.gtf
 
-          ch_versions = ch_versions.mix(BED2GTF.out.versions)
+          ch_versions = ch_versions.mix(BED2GTF_CONVERT_ANNOTATION.out.versions)
         } else {
           ch_gtf = Channel.of([:])
           ch_bed = Channel.of([[], []])
