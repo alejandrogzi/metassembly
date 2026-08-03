@@ -1,6 +1,10 @@
 
 <p align="center">
   <p align="center">
+    <img width=100 align="center" src="./assets/figures/logo.png" >
+  </p>
+
+  <p align="center">
     <img width=200 align="center" src="./assets/figures/hillerlab.png" >
   </p>
 
@@ -76,10 +80,29 @@ nextflow run main.nf -params-file params.json -profile docker
 nextflow run main.nf -params-file params.json -profile apptainer
 ```
 
-Smoke test:
+End-to-end tests use the committed 256 KB fixture and validate stable counts
+through trimming, decontamination, alignment, chromosome-split assembly,
+metassembly, and polishing:
+
 ```bash
-nextflow run main.nf -profile test,apptainer
+# Default Aletsch + Beaver smoke test
+tests/e2e/run.sh test
+
+# StringTie 3 + Beaver, TransMeta, or the complete matrix
+tests/e2e/run.sh test-sb
+tests/e2e/run.sh test-tm
+tests/e2e/run.sh all
 ```
+
+Set `TEST_ENGINE=apptainer` to change container engines. The profiles write to
+separate directories under `test_results/`; `test-polish` remains the small
+polishing-only fixture. Activate the compatible environment first with
+`mamba activate nextflow`, or set `NEXTFLOW_BIN` explicitly.
+
+Retention-only review can be enabled for normal and polishing-checkpoint runs
+with `--do_twopass_polish true`. It reuses the first-pass intronIC evidence,
+reclassifies retention discards, ignores UTR retentions in the second pass, and
+adds rescued transcripts back to the clean HQ set.
 
 > [!NOTE]
 > You can also specify these options directly in `params.json`.
