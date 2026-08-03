@@ -42,51 +42,56 @@ workflow STAR_ALIGNMENT {
             }
             .set { gtf_split }
 
-        if (params.star_ignore_gtf_for_mapping) {
-            ch_star_first_pass_out = STAR_ALIGN_1PASS(
-                ch_trimmed_split.first_pass,
-                Channel.value([]),
-                Channel.value([]),
-                params.star_ignore_gtf_for_mapping,
-                params.star_seq_platform ?: '',
-                params.star_seq_center ?: '',
-                params.star_seq_library ?: '',
-                params.star_machine_type ?: '',
-                params.star_keep_first_pass_bam ?: false,
-                false // delete fastq
-            )
+        if (params.star_twopass_junctions_file) {
+            // INFO: pre-curated junctions provided -> skip first pass and junction merging, align once
+            ch_junctions_file = Channel.value(file(params.star_twopass_junctions_file, checkIfExists: true))
         } else {
-            ch_star_first_pass_out = STAR_ALIGN_1PASS(
-                ch_trimmed_split.first_pass,
-                gtf_split.first_pass,
-                Channel.value([]),
-                params.star_ignore_gtf_for_mapping,
-                params.star_seq_platform ?: '',
-                params.star_seq_center ?: '',
-                params.star_seq_library ?: '',
-                params.star_machine_type ?: '',
-                params.star_keep_first_pass_bam ?: false,
-                false, // delete fastq
+            if (params.star_ignore_gtf_for_mapping) {
+                ch_star_first_pass_out = STAR_ALIGN_1PASS(
+                    ch_trimmed_split.first_pass,
+                    Channel.value([]),
+                    Channel.value([]),
+                    params.star_ignore_gtf_for_mapping,
+                    params.star_seq_platform ?: '',
+                    params.star_seq_center ?: '',
+                    params.star_seq_library ?: '',
+                    params.star_machine_type ?: '',
+                    params.star_keep_first_pass_bam ?: false,
+                    false // delete fastq
+                )
+            } else {
+                ch_star_first_pass_out = STAR_ALIGN_1PASS(
+                    ch_trimmed_split.first_pass,
+                    gtf_split.first_pass,
+                    Channel.value([]),
+                    params.star_ignore_gtf_for_mapping,
+                    params.star_seq_platform ?: '',
+                    params.star_seq_center ?: '',
+                    params.star_seq_library ?: '',
+                    params.star_machine_type ?: '',
+                    params.star_keep_first_pass_bam ?: false,
+                    false, // delete fastq
+                )
+            }
+
+            ch_splice_junctions = ch_star_first_pass_out.spl_junc_tab
+
+            // Collect all junction files into a single item
+            ch_all_junctions = ch_splice_junctions
+                .map { meta, junctions -> junctions } // Extract just the files
+                .collect() // Collect all files into a single list
+                .map { files -> [ [id: 'merged_junctions'], files ] } // Add a generic meta map
+
+            ch_filtered_junctions = JOIN_JUNCTIONS(
+                ch_all_junctions,
+                params.junction_min_junction_length,
+                params.junction_min_read_coverage
             )
+
+            // Now ch_filtered_junctions contains a single merged junction file
+            ch_junctions_file = ch_filtered_junctions.filtered_junctions
+                .map { meta, junctions -> junctions } // Extract just the file
         }
-
-        ch_splice_junctions = ch_star_first_pass_out.spl_junc_tab
-
-        // Collect all junction files into a single item
-        ch_all_junctions = ch_splice_junctions
-            .map { meta, junctions -> junctions } // Extract just the files
-            .collect() // Collect all files into a single list
-            .map { files -> [ [id: 'merged_junctions'], files ] } // Add a generic meta map
-
-        ch_filtered_junctions = JOIN_JUNCTIONS(
-            ch_all_junctions,
-            params.junction_min_junction_length,
-            params.junction_min_read_coverage
-        )
-
-        // Now ch_filtered_junctions contains a single merged junction file
-        ch_junctions_file = ch_filtered_junctions.filtered_junctions
-            .map { meta, junctions -> junctions } // Extract just the file
 
         ch_second_pass_input = ch_trimmed_split.second_pass
             .combine(ch_junctions_file)
