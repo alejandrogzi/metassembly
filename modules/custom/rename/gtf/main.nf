@@ -29,16 +29,6 @@ process RENAME_GTF {
         -p ${prefix} \\
         -o ${prefix}.renamed.gtf
 
-    if [ -L "${gtf}" ]; then
-      realpath=\$(readlink -f "${gtf}")
-      rm -f "${gtf}"
-      if [ -n "\$realpath" ]; then
-          rm -f "\$realpath"
-      fi
-    else
-      rm -f "${gtf}"
-    fi
-
     cat <<-END_VERSIONS > versions.yml  
     "${task.process}":
         python: \$(python --version | sed 's/Python //')
