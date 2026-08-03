@@ -26,7 +26,11 @@ process ALETSCH {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def library_type = meta.strandedness ?: 'unstranded'
+    // Aletsch's third sample-info field is sequencing protocol, not strandedness.
+    def library_type = meta.single_end ? 'single_end' : 'paired_end'
+    def fallback_insert_size = params.aletsch_fallback_insert_size ?: ''
+    def fallback_insert_std = params.aletsch_fallback_insert_std ?: 10
+    def chromosome = meta.chr ? "-l ${meta.chr}" : ''
 
     """
     # Create necessary directories
@@ -43,19 +47,34 @@ process ALETSCH {
         -p ${prefix}_profile \\
         $args
 
+    # Compact per-chromosome inputs may not meet Aletsch's internal preview
+    # sample minimum. Use an explicit known insert size only if profiling left
+    # its mean at zero.
+    if [ -n "$fallback_insert_size" ]; then
+        for profile in ${prefix}_profile/*.profile; do
+            awk -v mean="$fallback_insert_size" -v std="$fallback_insert_std" '
+                \$1 == "insertsize_ave" && \$2 == 0 { \$2 = mean }
+                \$1 == "insertsize_std" && \$2 == 0 { \$2 = std }
+                { print }
+            ' "\$profile" > "\$profile.tmp"
+            mv "\$profile.tmp" "\$profile"
+        done
+    fi
+
     # Run Aletsch assembly
     aletsch \\
         -i ${prefix}.info \\
         -o ${prefix}_gtf/${prefix}.gtf \\
         -p ${prefix}_profile \\
         -d ${prefix}_gtf \\
+        $chromosome \\
         $args
 
     # Move output to current directory
     mv ${prefix}_gtf/${prefix}.gtf ${prefix}.gtf
     mv ${prefix}_profile ${prefix}.profile
 
-    LINE_COUNT=\$(grep -w 'transcript' ${prefix}.gtf | wc -l)
+    LINE_COUNT=\$(awk '\$3 == "transcript" { n++ } END { print n + 0 }' ${prefix}.gtf)
 
     rm -rf ${prefix}_gtf/
 
@@ -81,7 +100,7 @@ process ALETSCH {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.renamed.gtf
+    touch ${prefix}.gtf
 
     LINE_COUNT=0
 
