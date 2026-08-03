@@ -1,0 +1,85 @@
+{
+  "seed": 7122026,
+  "read_length": 100,
+  "insert_size": 180,
+  "source": "mm39",
+  "loci": [
+    {
+      "source_chrom": "chr7",
+      "source_start": 16693603,
+      "source_end": 16698532,
+      "window_start": 16693103,
+      "window_end": 16699032,
+      "chrom": "chrTestA",
+      "transcript_id": "ENSMUST00000038163.8",
+      "gene_id": "test_gene_plus",
+      "strand": "+",
+      "exon_sizes": [
+        213,
+        1289,
+        2588
+      ],
+      "exon_offsets": [
+        0,
+        530,
+        2341
+      ]
+    },
+    {
+      "source_chrom": "chr1",
+      "source_start": 74324088,
+      "source_end": 74326613,
+      "window_start": 74323588,
+      "window_end": 74327113,
+      "chrom": "chrTestB",
+      "transcript_id": "ENSMUST00000113805.8",
+      "gene_id": "test_gene_plus_b",
+      "strand": "+",
+      "exon_sizes": [
+        208,
+        169,
+        363
+      ],
+      "exon_offsets": [
+        0,
+        912,
+        2162
+      ]
+    }
+  ],
+  "reads": {
+    "sampleA": {
+      "canonical_pairs": 4300,
+      "alternate_pairs": 0,
+      "flush_pairs": 120,
+      "intron_pairs": 90,
+      "deacon_negative_pairs": 60,
+      "alignment_negative_pairs": 35,
+      "low_quality_pairs": 25
+    },
+    "sampleB": {
+      "canonical_pairs": 3800,
+      "alternate_pairs": 180,
+      "flush_pairs": 120,
+      "intron_pairs": 90,
+      "deacon_negative_pairs": 60,
+      "alignment_negative_pairs": 35,
+      "low_quality_pairs": 25
+    }
+  },
+  "sha256": {
+    "README.md": "b78be05c141d2dc72fd467b724bd8f25a84f34f9759d1d30986d2e29eeb8de51",
+    "annotation.gtf": "a7bd22059bf4587b8db535d46b4e717f0276c5e8f23d4bb3d4ef316322f0a1c0",
+    "chrom.sizes": "4ec3ac76d3e197143d0b9533ada887d2f6470891a1bcdcaf815a86370d265669",
+    "genome.2bit": "ba3e31d76f0587bb3c5112e950580de2848ac90fccc0b667fd6c49c25f781537",
+    "reads/sampleA_1.fastq.gz": "92df344594dfd35d1b83ceaccf5f03adaf718cd362561dcf7b7bd465ee40cccf",
+    "reads/sampleA_2.fastq.gz": "5f14e401b4f3ea50df487d87d49a2aaba6a5f2f42f5b316831d6e93dd48e9e44",
+    "reads/sampleB_1.fastq.gz": "e340aa5727e128dcb335c6ed6b7eb6c163a20b90cc7b84a5df7ccd0d8205c3cc",
+    "reads/sampleB_2.fastq.gz": "dfb4fc98e4c49faa01010cb8316749b41ed969bd7d17c073790c1125e2ad41b4",
+    "repeats.bed": "62e75b71029d917be310c8e9396ae0e54d951a652633a29217cea77416844de7",
+    "spliceai/spliceAiAcceptorMinus.bw": "906ebf39efd2484ec7248197330012982045a41d371660c63b1d9750992b80f5",
+    "spliceai/spliceAiAcceptorPlus.bw": "108a7935b9b3319ddc20fa45ea2b9076077d7a09accf94f174160f74b48f9a2d",
+    "spliceai/spliceAiDonorMinus.bw": "906ebf39efd2484ec7248197330012982045a41d371660c63b1d9750992b80f5",
+    "spliceai/spliceAiDonorPlus.bw": "56d94d6ed8bac4c64510aee6efae2314e402a3f49ec4e2bfa4195d92915fbb82"
+  }
+}

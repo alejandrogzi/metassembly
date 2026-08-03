@@ -1,0 +1,16 @@
+chrTestA	mm39	gene	501	5429	.	+	.	gene_id "test_gene_plus";
+chrTestA	mm39	transcript	501	5429	.	+	.	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8";
+chrTestA	mm39	exon	501	713	.	+	.	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8"; exon_number "1";
+chrTestA	mm39	CDS	501	713	.	+	0	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8"; exon_number "1";
+chrTestA	mm39	exon	1031	2319	.	+	.	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8"; exon_number "2";
+chrTestA	mm39	CDS	1031	2319	.	+	0	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8"; exon_number "2";
+chrTestA	mm39	exon	2842	5429	.	+	.	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8"; exon_number "3";
+chrTestA	mm39	CDS	2842	5429	.	+	0	gene_id "test_gene_plus"; transcript_id "ENSMUST00000038163.8"; exon_number "3";
+chrTestB	mm39	gene	501	3025	.	+	.	gene_id "test_gene_plus_b";
+chrTestB	mm39	transcript	501	3025	.	+	.	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8";
+chrTestB	mm39	exon	501	708	.	+	.	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8"; exon_number "1";
+chrTestB	mm39	CDS	501	708	.	+	0	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8"; exon_number "1";
+chrTestB	mm39	exon	1413	1581	.	+	.	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8"; exon_number "2";
+chrTestB	mm39	CDS	1413	1581	.	+	0	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8"; exon_number "2";
+chrTestB	mm39	exon	2663	3025	.	+	.	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8"; exon_number "3";
+chrTestB	mm39	CDS	2663	3025	.	+	0	gene_id "test_gene_plus_b"; transcript_id "ENSMUST00000113805.8"; exon_number "3";

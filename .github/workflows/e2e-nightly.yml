@@ -1,0 +1,40 @@
+name: end-to-end matrix
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  e2e:
+    name: ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [test, test-sb, test-tm]
+    env:
+      NXF_DISABLE_CHECK_LATEST: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install compatible Nextflow
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: "25.10.0"
+
+      - name: Run and verify profile
+        run: tests/e2e/run.sh "${{ matrix.profile }}"
