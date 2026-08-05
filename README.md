@@ -1,12 +1,25 @@
-
 <p align="center">
   <p align="center">
     <img width=100 align="center" src="./assets/figures/logo.png" >
   </p>
 
-  <p align="center">
-    <img width=200 align="center" src="./assets/figures/hillerlab.png" >
-  </p>
+<p align="center">
+  <picture>
+    <source
+      media="(prefers-color-scheme: dark)"
+      srcset="./assets/figures/hillerlab-dark.png"
+    >
+    <source
+      media="(prefers-color-scheme: light)"
+      srcset="./assets/figures/hillerlab-light.png"
+    >
+    <img
+      width="200"
+      alt="Hiller Lab"
+      src="./assets/figures/hillerlab-light.png"
+    >
+  </picture>
+</p>
 
   <span>
     <h1 align="center">
