@@ -7,16 +7,16 @@ process DEACON_FILTER {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/deacon:0.13.2--h7ef3eeb_1':
-        'biocontainers/deacon:0.13.2--h7ef3eeb_1' }"
+        '' :
+        'ghcr.io/hillerlab/deacon-cbq@sha256:4d684c770b08551fdc89588598c87f3f038712388b2e56eabbc94b18f2a35844' }"
 
     input:
     tuple val(meta), path(reads)
     tuple val(meta1), path(index)
 
     output:
-    tuple val(meta), path("*.deacon.fastq.gz"), emit: reads
-    tuple val(meta), path("*.deacon.log")     , emit: log
+    tuple val(meta), path("*.deacon.{fastq.gz,cbq}"), emit: reads
+    tuple val(meta), path("*.deacon.log")           , emit: log
     path "versions.yml"           , emit: versions
 
     when:
@@ -25,14 +25,19 @@ process DEACON_FILTER {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def out_fq1 = "--output ${prefix}_1.deacon.fastq.gz"
-    def out_fq2 = "--output2 ${prefix}_2.deacon.fastq.gz"
+    // A .cbq holds both mates in one file and deacon rejects --output2 for CBQ output;
+    // the .cbq suffix on --output is what selects CBQ encoding.
+    def is_cbq = (reads instanceof List ? reads[0] : reads).name.endsWith('.cbq')
+    def outputs = is_cbq
+        ? "--output ${prefix}.deacon.cbq"
+        : (meta.single_end
+            ? "--output ${prefix}_1.deacon.fastq.gz"
+            : "--output ${prefix}_1.deacon.fastq.gz --output2 ${prefix}_2.deacon.fastq.gz")
     """
     deacon \\
         filter \\
         --threads $task.cpus \\
-        $out_fq1 \\
-        $out_fq2 \\
+        $outputs \\
         $args \\
         $index \\
         $reads \\
@@ -58,10 +63,12 @@ process DEACON_FILTER {
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def stub_reads = (reads instanceof List ? reads[0] : reads).name.endsWith('.cbq')
+        ? "touch ${prefix}.deacon.cbq"
+        : "touch ${prefix}_1.deacon.fastq.gz ${prefix}_2.deacon.fastq.gz"
     """
     touch ${prefix}.idx
-    touch ${prefix}_1.deacon.fastq.gz
-    touch ${prefix}_2.deacon.fastq.gz
+    ${stub_reads}
     touch ${prefix}.deacon.log
 
     cat <<-END_VERSIONS > versions.yml
