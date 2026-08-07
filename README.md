@@ -40,7 +40,7 @@
         <span> The Hiller Lab at the Senckenberg Research Institute </span>
         <br>
         <br>
-        <a href="https://github.com/alejandrogzi/xasm/blob/master/assets/docs/usage.md">usage</a> .
+        <a href="https://github.com/alejandrogzi/xasm/blob/main/assets/docs/usage.md">usage</a> .
         <a href="https://nbisweden.github.io/workshop-RNAseq/2011/lab_assembly.html">metassembly</a> .
         <a href="https://github.com/hillerlab/xasm/blob/main/assets/pipeline/xasm.mermaid">pipeline</a> .
         <a href="https://hillerlab.com/">us</a> 
