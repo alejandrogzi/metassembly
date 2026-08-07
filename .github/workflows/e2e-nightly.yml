@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [test, test-sb, test-tm]
+        profile: [test, test-sb, test-tm, test-rustar]
     env:
       NXF_DISABLE_CHECK_LATEST: "true"
 
