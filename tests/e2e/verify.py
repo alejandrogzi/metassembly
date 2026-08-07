@@ -74,6 +74,16 @@ def latest_trace(output: Path) -> Path:
     return max(traces, key=lambda path: path.stat().st_mtime_ns)
 
 
+def completed_tasks(output: Path) -> Counter[str]:
+    task_counts: Counter[str] = Counter()
+    with latest_trace(output).open(newline="") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            require(row["status"] == "COMPLETED", f"task did not complete: {row['name']} ({row['status']})")
+            process = row["name"].split(" (")[0].rsplit(":", 1)[-1]
+            task_counts[process] += 1
+    return task_counts
+
+
 def verify_profile(profile: str) -> None:
     expected = GOLDEN["profiles"][profile]
     output = ROOT / expected["output"]
@@ -84,6 +94,20 @@ def verify_profile(profile: str) -> None:
         for row in csv.reader(handle):
             require(len(row) == 9, f"unexpected samplesheet row: {row}")
             samples[row[0]] = row
+
+    task_counts = completed_tasks(output)
+
+    if expected.get("smoke"):
+        # No golden counts exist for this profile; assert the CBQ path ran end to end
+        # and that the STAR/FASTP path it replaces did not.
+        require(set(samples) == set(GOLDEN["common_samples"]), f"unexpected samples: {sorted(samples)}")
+        for process in expected["tasks"]:
+            require(task_counts[process] >= 1, f"{process} did not run")
+        for process in expected.get("forbidden_tasks", []):
+            require(task_counts[process] == 0, f"task that should be absent ran: {process}")
+        print(f"verified {profile}: smoke OK")
+        return
+
     require(set(samples) == set(GOLDEN["common_samples"]), f"unexpected samples: {sorted(samples)}")
     for sample, common in GOLDEN["common_samples"].items():
         row = samples[sample]
@@ -116,12 +140,7 @@ def verify_profile(profile: str) -> None:
     for relative in expected.get("absent_paths", []):
         require(not (output / relative).exists(), f"unexpected polishing output: {relative}")
 
-    task_counts: Counter[str] = Counter()
-    with latest_trace(output).open(newline="") as handle:
-        for row in csv.DictReader(handle, delimiter="\t"):
-            require(row["status"] == "COMPLETED", f"task did not complete: {row['name']} ({row['status']})")
-            process = row["name"].split(" (")[0].rsplit(":", 1)[-1]
-            task_counts[process] += 1
+    task_counts = completed_tasks(output)
     for process, count in expected["tasks"].items():
         require(task_counts[process] == count, f"{process} fan-out changed: {task_counts[process]} != {count}")
     for process in expected.get("forbidden_tasks", []):

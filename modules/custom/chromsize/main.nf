@@ -36,9 +36,9 @@ process CHROMSIZE {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: genome.baseName  // matches script; meta is always empty
     """
-    touch ${prefix}
+    mkdir -p ${prefix}
     touch ${prefix}/chrom.sizes
 
     cat <<-END_VERSIONS > versions.yml

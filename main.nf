@@ -56,6 +56,15 @@ if (params.help) {
         --polish_path         PATH      Path to polished assembly [required if --from polish]
         --do_twopass_polish   BOOLEAN   Re-review retention discards with --ignore-utr [default: false]
 
+    Optional parameters (CBQ reads, all require --aligner ruSTAR):
+        --aligner                          STRING    Aligner [options: STAR, ruSTAR] [default: STAR]
+                                                     STAR reads fastq only; ruSTAR reads fastq and cbq
+        --bqtools_encode_fastqs            BOOLEAN   Encode fastq inputs to .cbq up front; QC then runs
+                                                     via bqc instead of fastp [default: false]
+        --bqtools_encode_before_alignment  BOOLEAN   Keep fastp+deacon on fastq and encode to .cbq only
+                                                     for the aligner [default: false]
+        Native .cbq files in --input_dir are detected automatically and need neither flag.
+
     Profiles:
         local       Run on local machine (default)
         slurm       Submit jobs to SLURM cluster
@@ -63,6 +72,7 @@ if (params.help) {
         apptainer   Use Apptainer containers
         singularity Use Singularity containers
         docker      Use Docker containers
+        arm         Force linux/amd64 containers on ARM hosts (use as: -profile docker,arm)
         test        Run with bundled test data
 
     Use --help to show this message.
@@ -107,6 +117,37 @@ def validateRun() {
     if (!params.input_dir)   errors << "  --input_dir is required"
     if (!params.genome)      errors << "  --genome is required"
     if (!params.annotation)  errors << "  --annotation is required"
+
+    if (!(params.aligner in ['STAR', 'ruSTAR'])) {
+        errors << "  --aligner must be 'STAR' or 'ruSTAR' (got '${params.aligner}')"
+    }
+
+    if (params.bqtools_encode_fastqs && params.bqtools_encode_before_alignment) {
+        errors << "  --bqtools_encode_fastqs and --bqtools_encode_before_alignment are mutually exclusive"
+    }
+
+    // rustar-aligner 0.2.0 rejects --outWigStrand Unstranded and only produces stranded
+    // signal (str1 + str2); COVERAGE expects the single unstranded bedGraph STAR emits.
+    if (params.aligner == 'ruSTAR' && params.star_make_coverage) {
+        errors << "  --aligner ruSTAR does not support coverage tracks yet; set --star_make_coverage false"
+    }
+
+    // The input scan replaces the checkIfExists that the two read globs in
+    // METASSEMBLE cannot use (a run legitimately supplies only one format).
+    if (params.input_dir) {
+        def dir = file(params.input_dir)
+        def has_fastq = dir.list().any { it ==~ /.*[12]\.f.*q\.gz$/ }
+        def has_cbq   = dir.list().any { it.endsWith('.cbq') }
+
+        if (!has_fastq && !has_cbq) {
+            errors << "  --input_dir '${params.input_dir}' contains no *{1,2}.f*q.gz or *.cbq reads"
+        }
+
+        // STAR cannot read CBQ; ruSTAR reads both, so no guard is needed the other way.
+        if (params.aligner == 'STAR' && (has_cbq || params.bqtools_encode_fastqs || params.bqtools_encode_before_alignment)) {
+            errors << "  --aligner STAR cannot read CBQ; use --aligner ruSTAR for .cbq inputs or the bqtools_encode_* options"
+        }
+    }
 
     if (errors) {
         log.error "Parameter validation failed:\n${errors.join('\n')}"
