@@ -241,6 +241,7 @@ greatly improves detection of novel splice sites.
 
 | Parameter | Default | What it does |
 |-----------|---------|--------------|
+| `aligner` | `STAR` | Which aligner runs the two-pass scheme. `STAR` reads gzipped FASTQ only; `ruSTAR` (a Rust reimplementation) reads FASTQ **and** CBQ. See [4.6a](#46a-cbq-reads-bqtools--bqc). |
 | `star_index_path` | – | Path to an existing STAR index (or `.tar.gz` of one). If unset, the index is built from your genome. |
 | `star_ignore_gtf_for_index` | `false` | Build the STAR index **without** the annotation (`--sjdbGTFfile`). |
 | `star_ignore_gtf_for_mapping` | `true` | Ignore the annotation during alignment, relying on the junctions found in pass one. This is the recommended 2-pass behaviour. |
@@ -255,6 +256,65 @@ greatly improves detection of novel splice sites.
 | `star_delete_fastq_after_alignment` | `true` | Delete the aligned fastqs after the second pass to save disk. |
 | `star_twopass_junctions_file` | – | Path to a pre-curated junction file (STAR sjdb format, 4 columns). Providing one **skips the first pass** entirely and aligns once with your junctions. |
 | `star_make_coverage` | `true` | Produce coverage tracks (per-sample BigWig → merged BigWig in `05_coverage`). Disable to save time/disk if you do not need them. |
+
+### 4.6a CBQ reads (bqtools + bqc)
+
+CBQ is the columnar BINSEQ read format. A paired sample collapses into a
+**single `.cbq` file** carrying both mates, which on realistic libraries is
+roughly **20% smaller than the equivalent gzipped FASTQ pair** — the reason to
+use it. `fastp` and `fq lint` cannot read CBQ, so on the CBQ path quality
+control is done by `bqc` instead; the choice is derived from the input format
+and is not configurable.
+
+All of this is **opt-in and off by default**. Because STAR cannot read CBQ, any
+of it requires `--aligner ruSTAR`.
+
+There are three ways to get CBQ, and they differ in *when* the encode happens:
+
+| How | Path | Use when |
+|-----|------|----------|
+| Put `.cbq` files in `input_dir` | `bqc → deacon → ruSTAR` | Your reads are already CBQ. Nothing to set beyond `--aligner ruSTAR`. |
+| `bqtools_encode_fastqs = true` | `fastq → cbq → bqc → deacon → ruSTAR` | You want the storage saving across the **whole** run. |
+| `bqtools_encode_before_alignment = true` | `fastq → fastp → deacon → cbq → ruSTAR` | You want to keep the validated fastp+deacon path and only cut the peak disk of the alignment queue. |
+
+The two encode options are mutually exclusive. Mixing `.cbq` and FASTQ samples
+in one `input_dir` is supported — each sample is routed by its own extension.
+
+| Parameter | Default | What it does |
+|-----------|---------|--------------|
+| `bqtools_encode_fastqs` | `false` | Encode FASTQ inputs to `.cbq` before QC. Your original files in `input_dir` are never deleted. |
+| `bqtools_encode_before_alignment` | `false` | Encode to `.cbq` after decontamination, just for the aligner. The intermediate deacon FASTQs **are** deleted (they are work-directory files, and nothing downstream removes them otherwise). |
+| `bqc_min_length` | `15` | `--min-length`: reject reads shorter than this. Always sent — `bqc` refuses to run with no operation configured. |
+| `bqc_quality_tail` | `15` | `--quality-tail`: trim 3' bases until the trailing window reaches this Phred score. |
+| `bqc_poly_g` | `true` | `--poly-g`: trim G-rich 3' tails (two-colour chemistry). |
+| `bqc_max_n` | – | `--max-n`: reject reads with more than this many ambiguous bases. |
+| `bqc_adapter_auto_detect` | `false` | `--auto-detect`: infer adapters from the data. **Off by default on purpose:** unlike fastp's detection, `bqc` *aborts the task* when the evidence is ambiguous (pooled libraries, concatenated runs). Prefer the explicit sequences below. |
+| `bqc_adapter_r1` / `bqc_adapter_r2` | – | Explicit adapter sequences per mate. |
+| `bqc_extra_args` | – | Extra arguments passed verbatim to `bqc workflow`. |
+
+> Reads-after-trimming counts: `bqc` reports *records* (one paired record = both
+> mates) while `fastp` reports *reads*. xasm doubles the paired CBQ counts so
+> `fastp_min_trimmed_reads` means the same thing on both paths.
+
+**ruSTAR is not a complete STAR drop-in.** `rustar-aligner 0.2.0` differs from
+STAR in three ways that xasm works around, all verified against the binary:
+
+| Divergence | Consequence |
+|---|---|
+| `--limitSjdbInsertNsj` unimplemented | Omitted from the ruSTAR configuration. |
+| `--outSAMattributes` has no `ch` tag | ruSTAR BAMs carry `NH HI AS nM NM MD`; the STAR path additionally tags chimeric alignments with `ch`. |
+| `--outWigStrand Unstranded` rejected | **Coverage tracks are not available with ruSTAR.** Setting `aligner = ruSTAR` with `star_make_coverage = true` is refused up front; run with `--star_make_coverage false`. |
+
+An unknown flag *aborts* the task rather than being ignored, so if you set
+`star_extra_align_args`, confirm the flags exist with `rustar-aligner --help`.
+
+> **No need to pass `--aletsch_keep_bam true` anymore.** With `assembly_by_chr
+> = true`, Aletsch consumes the *shared* full BAM for every chromosome; the
+> `!aletsch_keep_bam && !star_make_coverage` cleanup used to delete it after
+> whichever chromosome finished first, so the siblings failed with "the file
+> does not exist". The cleanup now waits for the last chromosome's local
+> assembly before removing the BAM, so `--star_make_coverage false` (which
+> ruSTAR requires) is safe without `--aletsch_keep_bam`.
 
 ### 4.7 Junction filtering
 
@@ -386,7 +446,7 @@ Profiles are chosen with `-profile <name>` (comma-separate to combine, e.g.
 | `gpu` | Add GPU flags to the container run (only useful if a process requests an accelerator). |
 | `gitpod` | Limited resources (4 CPUs, 8 GB) for Gitpod-style environments. |
 | `debug` | More verbose Nextflow diagnostics. |
-| `test`, `test-sb`, `test-tm`, `test-polish` | Smoke-test profiles that run the bundled test data (see section 2). |
+| `test`, `test-sb`, `test-tm`, `test-rustar`, `test-polish` | Smoke-test profiles that run the bundled test data (see section 2); `test-rustar` is a smoke-checked CBQ path (see [4.6a](#46a-cbq-reads-bqtools--bqc)). |
 
 ---
 

@@ -102,9 +102,10 @@ metassembly, and polishing:
 # Default Aletsch + Beaver smoke test
 tests/e2e/run.sh test
 
-# StringTie 3 + Beaver, TransMeta, or the complete matrix
+# StringTie 3 + Beaver, TransMeta, ruSTAR + CBQ, or the complete matrix
 tests/e2e/run.sh test-sb
 tests/e2e/run.sh test-tm
+tests/e2e/run.sh test-rustar
 tests/e2e/run.sh all
 ```
 

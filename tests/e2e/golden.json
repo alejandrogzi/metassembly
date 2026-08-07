@@ -36,6 +36,12 @@
       "polish_line_counts": {"09_polish/orphans/test_tm.scraps.bed": 0},
       "forbidden_tasks": ["ISOTOOLS_CLASSIFY_INTRON_TWOPASS", "ISOTOOLS_INTRON_RETENTION_TWOPASS", "STRIP_RETENTIONS_TWOPASS", "SORT_BED_TWOPASS"],
       "tasks": {"BAMSPLIT_CHROM": 2, "TRANSMETA": 2, "RENAME_METASSEMBLY_GTF": 2, "PUBLISH_FINAL_TRANSCRIPTS": 1}
+    },
+    "test-rustar": {
+      "output": "test_results/rustar-beaver",
+      "smoke": true,
+      "tasks": ["BQTOOLS_ENCODE_INPUT", "BQC", "DEACON_FILTER", "RUSTAR_ALIGN_1PASS", "RUSTAR_ALIGN_2PASS", "SAMTOOLS_INDEX", "ALETSCH", "REMOVE_BAMS"],
+      "forbidden_tasks": ["FASTP", "STAR_ALIGN_1PASS", "STAR_ALIGN_2PASS"]
     }
   }
 }

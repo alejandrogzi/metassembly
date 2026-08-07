@@ -20,6 +20,7 @@ include { FASTP } from '../../modules/nf-core/fastp/main'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
+include { BQC } from '../../modules/custom/bqc/workflow/main'
 include { DEACON_FILTER } from '../../modules/custom/deacon/filter/main'
 
 /*
@@ -38,9 +39,18 @@ workflow PREPROCESS_READS {
         ch_versions = Channel.empty()
         ch_linting_logs = Channel.empty()
 
+        // fastp cannot read CBQ and bqc only reads CBQ, so the QC tool is derived
+        // from the input format rather than configured.
+        fastqs
+            .branch { _meta, reads ->
+                cbq: isCbq(reads)
+                fastq: true
+            }
+            .set { ch_by_format }
+
         if (!params.fq_skip_linting_at_start) {
             FQ_LINT_AT_START(
-                fastqs
+                ch_by_format.fastq
             )
 
             ch_versions = ch_versions.mix(FQ_LINT_AT_START.out.versions)
@@ -48,7 +58,7 @@ workflow PREPROCESS_READS {
         }
 
         FASTP(
-            fastqs,
+            ch_by_format.fastq,
             [], // adapter_fasta
             params.fastp_discard_trimmed_pass,
             params.fastp_save_trimmed_fail,
@@ -61,14 +71,28 @@ workflow PREPROCESS_READS {
 
         ch_versions = ch_versions.mix(FASTP.out.versions.first())
 
+        BQC(
+            ch_by_format.cbq
+        )
+
+        ch_versions = ch_versions.mix(BQC.out.versions.first())
+
         def minTrimmedReads = params.fastp_min_trimmed_reads.toLong()
 
         FASTP.out.reads.join(trim_json)
             .map { meta, _reads, json -> [meta, _reads, getFastpReadsAfterFiltering(json, minTrimmedReads)] }
+            .mix(
+                BQC.out.reads.join(BQC.out.report)
+                    .map { meta, _reads, json -> [meta, _reads, getBqcReadsAfterFiltering(json, minTrimmedReads)] }
+            )
             .set { ch_num_trimmed_reads }
 
         trim_json
             .map { meta, json -> [meta, getFastpReadsAfterFilteringAsPercentage(json, minTrimmedReads)] }
+            .mix(
+                BQC.out.report
+                    .map { meta, json -> [meta, getBqcReadsAfterFilteringAsPercentage(json, minTrimmedReads)] }
+            )
             .set { ch_num_trimmed_reads_percent }
 
         ch_num_trimmed_reads
@@ -92,8 +116,9 @@ workflow PREPROCESS_READS {
             .set { ch_adapter_seq }
 
         if (!params.fq_skip_linting_after_trimming) {
+            // fq lint is FASTQ-only; CBQ integrity is covered by bqc/bqtools
             FQ_LINT_AFTER_TRIMMING(
-                ch_trimmed_reads
+                ch_trimmed_reads.filter { _meta, reads -> !isCbq(reads) }
             )
 
             ch_versions = ch_versions.mix(FQ_LINT_AFTER_TRIMMING.out.versions)
@@ -114,7 +139,7 @@ workflow PREPROCESS_READS {
 
         if (!params.fq_skip_linting_after_deacon) {
             FQ_LINT_AFTER_DECONTAMINATION(
-                ch_deacon_out.reads
+                ch_deacon_out.reads.filter { _meta, reads -> !isCbq(reads) }
             )
 
             ch_versions = ch_versions.mix(FQ_LINT_AFTER_DECONTAMINATION.out.versions)
@@ -160,6 +185,50 @@ def getFastpReadsAfterFilteringAsPercentage(json_file, min_num_reads) {
     def total_reads_after_filtering = json['after_filtering']['total_reads'].toLong()
 
     return (total_reads_after_filtering / total_reads_before_filtering) * 100
+}
+
+//
+// Function that reports whether a reads entry is CBQ rather than FASTQ.
+// Mirrors metassembly/main.nf: the format comes from the file, not from meta.
+//
+def isCbq(reads) {
+    def first = reads instanceof List ? reads[0] : reads
+    return first.name.endsWith('.cbq')
+}
+
+//
+// Function that parses and returns the number of reads after filtering from the bqc report
+//
+// NOTE: bqc counts *records* (a paired record carries both mates) while fastp counts
+// *reads*, so a paired file is doubled to keep both branches on the same scale --
+// otherwise fastp_min_trimmed_reads would discard CBQ samples at twice the threshold.
+//
+def getBqcReadsAfterFiltering(json_file, min_num_reads) {
+    if (workflow.stubRun) {
+        return min_num_reads
+    }
+
+    def counts = new groovy.json.JsonSlurper().parseText(json_file.text).get('counts') as Map
+    def mates = (counts['r2_bases_in'] as Long) > 0 ? 2 : 1
+
+    return (counts['records_out'] as Long) * mates
+}
+
+//
+// Function that parses and returns the percentage of reads after filtering from the bqc report
+//
+def getBqcReadsAfterFilteringAsPercentage(json_file, min_num_reads) {
+    if (workflow.stubRun) {
+        return min_num_reads
+    }
+
+    def counts = new groovy.json.JsonSlurper().parseText(json_file.text).get('counts') as Map
+
+    def records_before_filtering = counts['records_in'] as Long
+    def records_after_filtering = counts['records_out'] as Long
+
+    // Ratio is mate-count independent, so no doubling is needed here
+    return records_before_filtering ? (records_after_filtering / records_before_filtering) * 100 : 0
 }
 
 //

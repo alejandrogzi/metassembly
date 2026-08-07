@@ -34,7 +34,7 @@ jobs:
 
       - name: Validate Nextflow profiles
         run: |
-          for profile in test test-sb test-tm test-polish; do
+          for profile in test test-sb test-tm test-polish test-rustar; do
             nextflow config -flat . -profile "$profile" > /dev/null
           done
 
