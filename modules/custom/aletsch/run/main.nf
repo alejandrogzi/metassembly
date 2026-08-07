@@ -17,7 +17,6 @@ process ALETSCH {
     tuple val(meta), path("*.gtf")       , emit: gtf
     tuple val(meta), path("*profile")    , emit: profile
     tuple val(meta), env(LINE_COUNT)     , emit: assembled_transcripts
-    tuple val(meta), path(bam), path(bai), emit: bam
     path "versions.yml"                  , emit: versions
 
     when:
@@ -77,19 +76,6 @@ process ALETSCH {
     LINE_COUNT=\$(awk '\$3 == "transcript" { n++ } END { print n + 0 }' ${prefix}.gtf)
 
     rm -rf ${prefix}_gtf/
-
-    if [ ${params.aletsch_keep_bam} == false ] && [ ${params.star_make_coverage} == false ]; then
-        # Resolve symlinks and delete actual files
-        if [ -L "${bam}" ]; then
-            realpath=\$(readlink -f "${bam}")
-            rm -f "${bam}"
-            if [ -n "\$realpath" ]; then
-                rm -f "\$realpath"
-            fi
-        else
-            rm -f "${bam}"
-        fi
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

@@ -6,9 +6,13 @@ process REMOVE_BAMS {
     label 'process_low'
 
     conda "${moduleDir}/environment.yml"
+    // NOTE: was 'biocontainers/bash:5.2.15', which does not exist on the configured
+    // quay.io default registry. This process is gated on
+    // !aletsch_keep_bam && !star_make_coverage, so the broken coordinate was never
+    // exercised by the default (coverage-on) configuration.
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bash:5.2.15' :
-        'biocontainers/bash:5.2.15' }"
+        'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
+        'quay.io/nf-core/ubuntu:20.04' }"
 
     input:
     tuple val(meta), path(bams)

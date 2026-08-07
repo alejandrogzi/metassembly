@@ -99,6 +99,9 @@ workflow ASSEMBLY {
         ch_grouped_gtfs = Channel.empty()
         ch_grouped_bams = Channel.empty()
         ch_name_map = Channel.empty()
+        // INFO: barrier accumulator for the full-BAM cleanup below; carries one item per
+        // LOCAL_ASSEMBLY task across both the per-chr and per-sample beaver branches
+        ch_local_versions = Channel.empty()
 
         /*
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -207,12 +210,7 @@ workflow ASSEMBLY {
                         [ [ id: sample, single_end: single_ends.first(), strandedness: strandednesses.first() ], counts.sum() as int ]
                     }
 
-                if (!params.aletsch_keep_bam && !params.star_make_coverage) {
-                    REMOVE_BAMS(
-                        ch_bams.map { meta, bam, bai -> [meta, [bam, bai]] }
-                    )
-                    ch_versions = ch_versions.mix(REMOVE_BAMS.out.versions)
-                }
+                ch_local_versions = ch_local_versions.mix(ch_local.versions)
 
                 ch_versions = ch_versions.mix(ch_local.versions)
             } else {
@@ -260,6 +258,8 @@ workflow ASSEMBLY {
 
                 ch_counts = ch_local.counts
 
+                ch_local_versions = ch_local_versions.mix(ch_local.versions)
+
                 ch_versions = ch_versions.mix(ch_local.versions)
             } else {
                 ch_renamed_bams = RENAME_BAM(
@@ -279,6 +279,27 @@ workflow ASSEMBLY {
 
                 ch_versions = ch_versions.mix(RENAME_BAM.out.versions)
             }
+        }
+
+        /*
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            FULL-BAM CLEANUP
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        */
+
+        if (!params.aletsch_keep_bam && !params.star_make_coverage) {
+            // The full BAM is read by every LOCAL_ASSEMBLY task and by BAMSPLIT_CHROM, so
+            // wait for the last local task before deleting it; a sibling rm can otherwise
+            // race still-running consumers. Covers both the per-chr and per-sample
+            // branches; with transmeta ch_local_versions stays empty, collect() emits
+            // nothing and REMOVE_BAMS never runs [fail-safe: the bam is kept].
+            ch_cleanup_done = ch_local_versions.collect().map { _versions -> 'done' }
+            REMOVE_BAMS(
+                ch_bams.map { meta, bam, bai -> [meta, [bam, bai]] }
+                    .combine(ch_cleanup_done)
+                    .map { meta, bams, _done -> [meta, bams] }
+            )
+            ch_versions = ch_versions.mix(REMOVE_BAMS.out.versions)
         }
 
         /*
