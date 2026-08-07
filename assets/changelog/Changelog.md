@@ -61,6 +61,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.0] - 2026-08-07
+
+### Added
+
+- ruSTAR as an alternative aligner (`aligner = "ruSTAR"`): a Rust reimplementation of STAR with the same CLI flags and STAR-compatible log output, reading both FASTQ and CBQ natively. Because the aligner image ships no `samtools`, BAM indexing is delegated to the new `SAMTOOLS_INDEX` module. The two-pass scheme and the pre-curated-junction shortcut apply as in the STAR path.
+- CBQ (columnar BINSEQ) read support. Native `.cbq` files in `input_dir` are detected automatically; `bqtools_encode_fastqs` encodes FASTQ inputs before QC (QC then runs via `bqc` instead of `fastp`), and `bqtools_encode_before_alignment` keeps the `fastp`+deacon path and encodes to `.cbq` only for the aligner (the two are mutually exclusive, configurable in `params.json` and `main.nf` help).
+- `BQTOOLS_ENCODE` module to collapse a paired FASTQ set into a single `.cbq`.
+- `BQC` module: CBQ-native all-in-one QC (adapter, trimming, filtering) with a structured JSON report and `bqc_*` parameters. Paired counts are doubled so `fastp_min_trimmed_reads` means the same thing on both paths.
+- deacon upgraded to 0.16.0, which emits `.cbq` on the CBQ decontamination path.
+- `test-rustar` end-to-end profile exercising the whole CBQ path (`bqtools_encode_fastqs` → `bqc` → deacon → ruSTAR → `samtools` index → cleanup) on the existing fixture, wired into the nightly matrix and CI profile validation, with a smoke checker that asserts the CBQ processes run and the STAR/FASTP path does not.
+
+### Changed
+
+- New `aligner` parameter (`STAR` | `ruSTAR`, default `STAR`) separating alignment configuration; version bumped to `0.1.0` in the pipeline manifest.
+- Coverage tracks are refused up front under ruSTAR (`rustar-aligner` rejects `--outWigStrand Unstranded`), so `aligner = ruSTAR` requires `star_make_coverage = false`.
+- Alignment under ruSTAR rebuilds the `(meta, bam, bai)` tuple via `SAMTOOLS_INDEX` instead of treating STAR-style inline indexing as the norm.
+
+### Fixed
+
+- Aletsch per-chromosome cleanup race: with `assembly_by_chr = true` the shared full BAM is read by every per-chromosome local-assembly task, and the `!aletsch_keep_bam && !star_make_coverage` cleanup deleted it after whichever chromosome finished first. The in-task deletion was removed and `REMOVE_BAMS` now waits for the last local assembly before deleting, so `--star_make_coverage false` is safe without `--aletsch_keep_bam`.
+- `REMOVE_BAMS` referenced a `biocontainers/bash` image that does not exist on the configured registry; it now uses a valid ubuntu base.
+- CHROMSIZE stub failed in `-stub-run`: the stub fell back to the always-empty `meta.id` and created a file where the real `chromsize -o` creates a directory. It now mirrors the script (`genome.baseName`, `mkdir -p`).
+
+---
+
 ## [0.0.20] - 2026-08-04
 
 ### Added
