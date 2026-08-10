@@ -100,13 +100,13 @@ metassembly, and polishing:
 
 ```bash
 # Default Aletsch + Beaver smoke test
-tests/e2e/run.sh test
+assets/ci/e2e/run.sh test
 
 # StringTie 3 + Beaver, TransMeta, ruSTAR + CBQ, or the complete matrix
-tests/e2e/run.sh test-sb
-tests/e2e/run.sh test-tm
-tests/e2e/run.sh test-rustar
-tests/e2e/run.sh all
+assets/ci/e2e/run.sh test-sb
+assets/ci/e2e/run.sh test-tm
+assets/ci/e2e/run.sh test-rustar
+assets/ci/e2e/run.sh all
 ```
 
 Set `TEST_ENGINE=apptainer` to change container engines. The profiles write to

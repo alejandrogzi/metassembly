@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -37,4 +39,4 @@ jobs:
           version: "25.10.0"
 
       - name: Run and verify profile
-        run: tests/e2e/run.sh "${{ matrix.profile }}"
+        run: assets/ci/e2e/run.sh "${{ matrix.profile }}"

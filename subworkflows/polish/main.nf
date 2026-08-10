@@ -21,6 +21,8 @@ include { ISOTOOLS_CLASSIFY_INTRON } from '../../modules/custom/isotools/classif
 include { ISOTOOLS_CLASSIFY_INTRON as ISOTOOLS_CLASSIFY_INTRON_TWOPASS } from '../../modules/custom/isotools/classify/intron/main.nf'
 include { ISOTOOLS_INTRON_RETENTION } from '../../modules/custom/isotools/intron/main.nf'
 include { ISOTOOLS_INTRON_RETENTION as ISOTOOLS_INTRON_RETENTION_TWOPASS } from '../../modules/custom/isotools/intron/main.nf'
+include { ISOTOOLS_NMD } from '../../modules/custom/isotools/nmd/main.nf'
+
 include { STRIP_OCCURRENCES as STRIP_RETENTIONS } from '../../modules/custom/strip/main'
 include { STRIP_OCCURRENCES as STRIP_RETENTIONS_TWOPASS } from '../../modules/custom/strip/main'
 include { STRIP_OCCURRENCES as STRIP_STRONG_RTS } from '../../modules/custom/strip/main'
@@ -32,6 +34,8 @@ include { SORT_BED as SORT_BED_FL_TRANSCRIPTS } from '../../modules/custom/sort/
 include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_NMD } from '../../modules/custom/sort/main'
+include { XORF_RUN } from '../xorf/main'
 
 
 /*
@@ -42,7 +46,7 @@ include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
 
 workflow POLISH_TWOPASS {
     take:
-        hq                       // channel: [ meta, bed ] clean first-pass HQ
+        hq                       // channel: [ meta, bed ] XORF ORF predictions (BED12)
         retentions               // channel: [ meta, bed ] first-pass retention discards
         intron_iic               // channel: [ meta, iic ] first-pass intronIC evidence
         genome                   // channel: [ meta, fasta ]
@@ -51,18 +55,24 @@ workflow POLISH_TWOPASS {
         splice_scores            // channel: [ meta, bigwig directory ]
 
     main:
-        // STRIP_OCCURRENCES appends `.discard` to the metadata id. Join on
-        // the original id to reuse the IIC calculated before retention filtering.
-        ch_classify_inputs = retentions
+        // XORF output ids embed the source transcript: meta.id =
+        // "<prefix>_flnc@<chr>". POLISH names the ORF input `<prefix>_flnc`
+        // and the subworkflow's groupKey appends `@<chr>`; the first-pass IIC
+        // evidence is keyed by the plain sample prefix, so drop the suffix to
+        // join.
+        // ponytail: assumes the XORF emit id is exactly <prefix>_flnc@<chr>;
+        // if the POLISH naming or the groupKey scheme changes, this regex is
+        // the single point to fix.
+        ch_classify_inputs = hq
             .map { meta, bed ->
-                def source_id = meta.id.replaceFirst(/\.discard$/, '')
-                tuple(source_id, meta + [ id: "${source_id}_twopass" ], bed)
+                def source_id = meta.id.replaceFirst(/@.*$/, '').replaceFirst(/_flnc$/, '')
+                tuple(source_id, meta, bed)
             }
             .join(
                 intron_iic.map { meta, iic -> tuple(meta.id, meta, iic) }
             )
-            .map { id, retention_meta, bed, iic_meta, iic ->
-                tuple(retention_meta, bed, iic)
+            .map { id, hq_meta, bed, iic_meta, iic ->
+                tuple(hq_meta, bed, iic)
             }
 
         ISOTOOLS_CLASSIFY_INTRON_TWOPASS(
@@ -73,7 +83,20 @@ workflow POLISH_TWOPASS {
             splice_scores
         )
 
-        ch_retention_candidates = ch_classify_inputs.map { meta, bed, iic -> [meta, bed] }
+        // Candidates stay the first-pass discards, joined with first-pass IIC
+        // exactly as before the ORF rewrite (STRIP_OCCURRENCES appends `.discard`
+        // to the metadata id; join on the original id).
+        ch_retention_candidates = retentions
+            .map { meta, bed ->
+                def source_id = meta.id.replaceFirst(/\.discard$/, '')
+                tuple(source_id, meta + [ id: "${source_id}_twopass" ], bed)
+            }
+            .join(
+                intron_iic.map { meta, iic -> tuple(meta.id, meta, iic) }
+            )
+            .map { id, retention_meta, bed, iic_meta, iic ->
+                [retention_meta, bed]
+            }
 
         ISOTOOLS_INTRON_RETENTION_TWOPASS(
             ch_retention_candidates,
@@ -86,7 +109,7 @@ workflow POLISH_TWOPASS {
             'RETENTION'
         )
 
-        // First-pass HQ and its retention discards are disjoint. Mixing and
+        // ORF HQ and its retention discards are disjoint. Mixing and
         // sorting also falls back naturally to HQ when there are no retentions.
         ch_merged_hq = hq
             .mix(STRIP_RETENTIONS_TWOPASS.out.hq)
@@ -125,6 +148,7 @@ workflow POLISH {
         repeats                   // path: /path/to/repeats.{bed/gff/gtf}
         splice_scores_dir         // path: /path/to/splice/scores/dir
         do_twopass_polish         // val: boolean
+        prefix                    // val: string
 
     main:
         ch_versions = Channel.empty()
@@ -236,15 +260,27 @@ workflow POLISH {
        ) 
 
        STRIP_ARTIFACTS.out.hq
-         .map { meta, bed -> [ [ id: meta.id + '_clean' ], bed ] }
+         .map { meta, bed -> [ [ id: prefix + '_flnc' ], bed ] }
          .set { ch_fl_hq_transcripts }
+
+      ch_xorf_hq = Channel.empty()
+      if (params.xorf_call_orfs) {
+         XORF_RUN(
+            ch_fl_hq_transcripts,
+            ch_genome
+         )
+         // XORF emits one merged bed per transcript with the default
+         // skip_joined_concat=false; the list guard keeps classify's path(bed) safe.
+         ch_xorf_hq = XORF_RUN.out.files.map { meta, bed, tsv -> [ meta, bed instanceof List ? bed[0] : bed ] }
+         ch_versions = ch_versions.mix(XORF_RUN.out.versions)
+      }
 
       ch_final_hq = ch_fl_hq_transcripts
       ch_final_retentions = STRIP_RETENTIONS.out.discard
 
       if (do_twopass_polish) {
          POLISH_TWOPASS(
-            ch_fl_hq_transcripts,
+            ch_xorf_hq,
             STRIP_RETENTIONS.out.discard,
             IIC_PREDICT_SPLICEOSOME.out.iic,
             ch_genome,
@@ -258,6 +294,15 @@ workflow POLISH {
          ch_versions = ch_versions.mix(POLISH_TWOPASS.out.versions)
       }
 
+      ISOTOOLS_NMD(
+        ch_final_hq
+      )
+      // iso-nmd does not preserve coordinate order; re-sort so the published
+      // final BED stays sorted (bedToBigBed requires it) and keeps the
+      // canonical `<prefix>_twopass_clean.sorted.bed` name.
+      SORT_BED_NMD(ISOTOOLS_NMD.out.reads)
+      ch_versions = ch_versions.mix(ISOTOOLS_NMD.out.versions).mix(SORT_BED_NMD.out.versions)
+      ch_final_hq = SORT_BED_NMD.out.sorted
       PUBLISH_FINAL_TRANSCRIPTS(ch_final_hq)
 
     emit:
@@ -269,5 +314,6 @@ workflow POLISH {
         introns        = ISOTOOLS_CLASSIFY_INTRON.out.tsv
         scraps         = SORT_BED_SCRAPS.out.sorted
         fusions        = SORT_BED_FUSIONS.out.sorted
+        nmd            = ISOTOOLS_NMD.out.nmd
         versions       = ch_versions
 }

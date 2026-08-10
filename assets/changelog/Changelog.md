@@ -61,6 +61,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2026-08-10
+
+### Added
+
+- ORF calling with XORF, gated by `xorf_call_orfs` (default `true`). The pinned `xorf` submodule is wired in as a gitlink and its ORF subworkflow is called through a new `XORF_RUN` wrapper (`subworkflows/xorf/main.nf`) that adapts channel shapes and prepares the protein database: a custom `xorf_custom_database` (`.dmnd`/`.dmnd.gz` used as-is, `.fa`/`.fasta` appended to SwissProt and reindexed with diamond) or the default zenodo download. The full ORF chain runs with per-step parameters (`xorf_chunk_size`, `xorf_skip_netstart`, `xorf_predict_min_score_max_predictions`, `xorf_predict_max_predictions`, `xorf_predict_threshold`, `xorf_predict_keep_raw`, `xorf_do_polishing`, `xorf_rename_*`, `xorf_samba_weights`/`xorf_samba_local_weights`), publishing under `09_polish/xorf/{00_concat,01_renamed,02_merged,03_duplicates,04_results}`; the `rename_predictions.py` helper is vendored into `bin/` and `assets/scripts/xorf.sh` manages the submodule.
+- Two-pass polishing now operates on ORF-validated transcripts: when `do_twopass_polish` is set, `xorf_call_orfs` is required (validated at startup) and the twopass HQ input is XORF's ORF predictions rather than the raw first-pass HQ, so intron reclassification and retention rescuing run against transcripts with ORF evidence.
+- Nonsense-mediated decay filtering: new `ISOTOOLS_NMD` module runs `iso-nmd` (premature-termination-codon detection) on the final HQ set; NMD candidates publish to `10_final/nmd` and the published final transcript set is the NMD-passing reads.
+
+### Changed
+
+- Output layout: single-exon scraps are published under `10_final/scraps` (previously `09_polish`) and fusion calls under `10_final/fusions` (previously `09_polish/fusions`), grouping every final transcript category under `10_final`.
+- XORF input transcripts are named `<prefix>_flnc`; the deterministic id flows through XORF outputs and two-pass artifact names (e.g. `09_polish/twopass/classify/<prefix>_flnc@<prefix>_flnc.reference_introns.tsv`).
+- Repository layout: the end-to-end fixture moved from `test_data/` to `assets/test/test_data/` and the test harness from `tests/` to `assets/ci/`; all `nextflow.config` profiles, CI workflows, `run.sh`/`verify.py`, the fixture builder, and docs were updated accordingly. The e2e golden suite now also asserts the XORF chain (fixture protein database, ORF task counts, `09_polish/xorf/` artifacts).
+- The `INTRONIC` process label was raised from `process_medium` to `process_high`.
+- Version bumped to `0.1.1` in the pipeline manifest.
+
+### Removed
+
+- The `publish.yml` GitHub Actions workflow (automatic release publishing) — no longer needed.
+
+---
+
 ## [0.1.0] - 2026-08-07
 
 ### Added

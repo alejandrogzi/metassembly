@@ -1,0 +1,3 @@
+[submodule "modules/xorf"]
+	path = modules/xorf
+	url = https://github.com/hillerlab/xorf

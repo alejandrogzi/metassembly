@@ -120,10 +120,10 @@ The repo ships tiny test fixtures so you can check that your container
 engine and profiles work before touching real data:
 
 ```bash
-tests/e2e/run.sh test          # default Aletsch + Beaver
-tests/e2e/run.sh test-sb       # StringTie 3 + Beaver
-tests/e2e/run.sh test-tm       # TransMeta
-tests/e2e/run.sh all           # the whole matrix
+assets/ci/e2e/run.sh test          # default Aletsch + Beaver
+assets/ci/e2e/run.sh test-sb       # StringTie 3 + Beaver
+assets/ci/e2e/run.sh test-tm       # TransMeta
+assets/ci/e2e/run.sh all           # the whole matrix
 ```
 
 Set `TEST_ENGINE=apptainer` to switch container engines. Results land in
