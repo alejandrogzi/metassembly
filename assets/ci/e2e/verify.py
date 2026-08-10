@@ -13,8 +13,9 @@ from collections import Counter
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = ROOT / "test_data/e2e"
+# lives at assets/ci/e2e/verify.py, three levels below the repository root
+ROOT = Path(__file__).resolve().parents[3]
+FIXTURE = ROOT / "assets/test/test_data/e2e"
 GOLDEN = json.loads((Path(__file__).with_name("golden.json")).read_text())
 
 

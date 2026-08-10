@@ -55,6 +55,8 @@ if (params.help) {
         --from                STRING    Checkpoint to resume from [options: polish]
         --polish_path         PATH      Path to polished assembly [required if --from polish]
         --do_twopass_polish   BOOLEAN   Re-review retention discards with --ignore-utr [default: false]
+        --xorf_call_orfs      BOOLEAN   Run XORF ORF calling on first-pass HQ transcripts [default: false]
+        --xorf_custom_database PATH     Custom protein database for ORF calling (.dmnd/.dmnd.gz replaces the default; .fa/.fasta appended to SwissProt) [default: null; rest of XORF options in params.json]
 
     Optional parameters (CBQ reads, all require --aligner ruSTAR):
         --aligner                          STRING    Aligner [options: STAR, ruSTAR] [default: STAR]
@@ -124,6 +126,10 @@ def validateRun() {
 
     if (params.bqtools_encode_fastqs && params.bqtools_encode_before_alignment) {
         errors << "  --bqtools_encode_fastqs and --bqtools_encode_before_alignment are mutually exclusive"
+    }
+
+    if (params.do_twopass_polish && !params.xorf_call_orfs) {
+        errors << "  --do_twopass_polish requires --xorf_call_orfs true (twopass needs ORF calls from XORF)"
     }
 
     // rustar-aligner 0.2.0 rejects --outWigStrand Unstranded and only produces stranded
@@ -248,6 +254,7 @@ workflow FULL_RUN {
             params.repeats,
             params.splice_scores_dir,
             params.do_twopass_polish,
+            params.prefix
         )
     }
 
@@ -368,6 +375,7 @@ workflow FROM_POLISHING {
         params.repeats,
         params.splice_scores_dir,
         params.do_twopass_polish,
+        params.prefix
     )
 
     if (!params.skip_bb_conversion) {

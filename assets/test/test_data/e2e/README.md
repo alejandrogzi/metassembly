@@ -16,7 +16,7 @@ Regeneration requires UCSC `twoBitToFa`, `faToTwoBit`, and
 `bedGraphToBigWig`:
 
 ```bash
-python tests/fixtures/build_fixture.py \
+python assets/ci/fixtures/build_fixture.py \
   --source-2bit /path/to/mm39.2bit \
   --two-bit-to-fa /path/to/twoBitToFa \
   --fa-to-two-bit /path/to/faToTwoBit \

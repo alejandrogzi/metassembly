@@ -220,7 +220,7 @@ def main() -> None:
     parser.add_argument("--two-bit-to-fa", type=Path, required=True)
     parser.add_argument("--fa-to-two-bit", type=Path, required=True)
     parser.add_argument("--bedgraph-to-bigwig", type=Path, required=True)
-    parser.add_argument("--output", type=Path, default=Path("test_data/e2e"))
+    parser.add_argument("--output", type=Path, default=Path("assets/test/test_data/e2e"))
     args = parser.parse_args()
 
     output_dir = args.output.resolve()

@@ -4,7 +4,7 @@ set -euo pipefail
 profile=${1:-test}
 mode=${2:-run}
 engine=${TEST_ENGINE:-docker}
-root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 
 case "$profile" in
   test|test-sb|test-tm|test-rustar) profiles=("$profile") ;;
@@ -23,4 +23,4 @@ if [[ "$mode" != verify ]]; then
   done
 fi
 
-python "$root/tests/e2e/verify.py" "$profile"
+python "$root/assets/ci/e2e/verify.py" "$profile"

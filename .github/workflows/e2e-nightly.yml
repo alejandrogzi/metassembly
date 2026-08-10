@@ -37,4 +37,4 @@ jobs:
           version: "25.10.0"
 
       - name: Run and verify profile
-        run: tests/e2e/run.sh "${{ matrix.profile }}"
+        run: assets/ci/e2e/run.sh "${{ matrix.profile }}"
