@@ -34,6 +34,7 @@ include { SORT_BED as SORT_BED_FL_TRANSCRIPTS } from '../../modules/custom/sort/
 include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_NMD } from '../../modules/custom/sort/main'
 include { XORF_RUN } from '../xorf/main'
 
 
@@ -296,7 +297,12 @@ workflow POLISH {
       ISOTOOLS_NMD(
         ch_final_hq
       )
-      ch_final_hq = ISOTOOLS_NMD.out.reads
+      // iso-nmd does not preserve coordinate order; re-sort so the published
+      // final BED stays sorted (bedToBigBed requires it) and keeps the
+      // canonical `<prefix>_twopass_clean.sorted.bed` name.
+      SORT_BED_NMD(ISOTOOLS_NMD.out.reads)
+      ch_versions = ch_versions.mix(ISOTOOLS_NMD.out.versions).mix(SORT_BED_NMD.out.versions)
+      ch_final_hq = SORT_BED_NMD.out.sorted
       PUBLISH_FINAL_TRANSCRIPTS(ch_final_hq)
 
     emit:
