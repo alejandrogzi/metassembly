@@ -19,22 +19,22 @@
       "metassembly": "06_beaver/test_sb.gtf",
       "assembled": {"sampleA": 3, "sampleB": 4},
       "gtf_transcripts": {"chrTestA": 2, "chrTestB": 2},
-      "final_glob": "*.striped.bed",
+      "final_glob": "*.sorted.bed",
       "final_records": {"chrTestA": 1, "chrTestB": 1},
-      "polish_line_counts": {"09_polish/orphans/test_sb.scraps.bed": 0, "10_final/retentions/test_sb.discard.bed": 1, "10_final/artifacts/test_sb_no_retentions_no_strong_rts_no_weak_rts.discard.bed": 1},
+      "polish_line_counts": {"10_final/scraps/orphans/test_sb.scraps.bed": 0, "10_final/retentions/test_sb.discard.bed": 1, "10_final/artifacts/test_sb_no_retentions_no_strong_rts_no_weak_rts.discard.bed": 1},
       "forbidden_tasks": ["ISOTOOLS_CLASSIFY_INTRON_TWOPASS", "ISOTOOLS_INTRON_RETENTION_TWOPASS", "STRIP_RETENTIONS_TWOPASS", "SORT_BED_TWOPASS"],
-      "tasks": {"BAMSPLIT_CHROM": 2, "STRINGTIE3": 4, "BEAVER": 2, "RENAME_METASSEMBLY_GTF": 2, "PUBLISH_FINAL_TRANSCRIPTS": 1}
+      "tasks": {"BAMSPLIT_CHROM": 2, "STRINGTIE3": 4, "BEAVER": 2, "RENAME_METASSEMBLY_GTF": 2, "ISOTOOLS_NMD": 1, "SORT_BED_NMD": 1, "PUBLISH_FINAL_TRANSCRIPTS": 1}
     },
     "test-tm": {
       "output": "test_results/transmeta",
       "metassembly": "06_transmeta/test_tm.gtf",
       "assembled": {"sampleA": 2, "sampleB": 2},
       "gtf_transcripts": {"chrTestB": 1},
-      "final_glob": "*.striped.bed",
+      "final_glob": "*.sorted.bed",
       "final_records": {"chrTestB": 1},
-      "polish_line_counts": {"09_polish/orphans/test_tm.scraps.bed": 0},
+      "polish_line_counts": {"10_final/scraps/orphans/test_tm.scraps.bed": 0},
       "forbidden_tasks": ["ISOTOOLS_CLASSIFY_INTRON_TWOPASS", "ISOTOOLS_INTRON_RETENTION_TWOPASS", "STRIP_RETENTIONS_TWOPASS", "SORT_BED_TWOPASS"],
-      "tasks": {"BAMSPLIT_CHROM": 2, "TRANSMETA": 2, "RENAME_METASSEMBLY_GTF": 2, "PUBLISH_FINAL_TRANSCRIPTS": 1}
+      "tasks": {"BAMSPLIT_CHROM": 2, "TRANSMETA": 2, "RENAME_METASSEMBLY_GTF": 2, "ISOTOOLS_NMD": 1, "SORT_BED_NMD": 1, "PUBLISH_FINAL_TRANSCRIPTS": 1}
     },
     "test-rustar": {
       "output": "test_results/rustar-beaver",
