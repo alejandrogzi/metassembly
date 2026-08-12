@@ -10,9 +10,9 @@
       "assembled": {"sampleA": 4, "sampleB": 4},
       "gtf_transcripts": {"chrTestA": 2, "chrTestB": 2},
       "final_glob": "*.twopass_clean.sorted.bed",
-      "final_records": {"chrTestA": 1, "chrTestB": 1},
+      "final_records": {"chrTestA": 2, "chrTestB": 2},
       "polish_line_counts": {"09_polish/twopass/input_retentions/test.discard.bed": 1, "09_polish/twopass/classify/test_flnc@test_flnc.reference_introns.tsv": 4, "09_polish/twopass/retentions/test_twopass.retentions.tsv": 1, "10_final/artifacts/test_no_retentions_no_strong_rts_no_weak_rts.discard.bed": 1, "10_final/retentions/test_twopass.discard.bed": 1, "10_final/scraps/orphans/test.scraps.bed": 0},
-      "tasks": {"BAMSPLIT_CHROM": 2, "ALETSCH": 4, "BEAVER": 2, "RENAME_METASSEMBLY_GTF": 2, "XLOCI_EXTRACT_INTRONS": 1, "IIC_PREDICT_SPLICEOSOME": 1, "ISOTOOLS_CLASSIFY_INTRON_TWOPASS": 1, "ISOTOOLS_INTRON_RETENTION_TWOPASS": 1, "STRIP_RETENTIONS_TWOPASS": 1, "SORT_BED_TWOPASS": 1, "ISOTOOLS_NMD": 1, "SORT_BED_NMD": 1, "PUBLISH_FINAL_TRANSCRIPTS": 1, "WGET_SAMBA_WEIGHTS": 1, "GENEPRED_LINT": 2, "CHUNKER": 1, "TRANSLATION": 1, "RNASAMBA": 1, "TRANSAID": 1, "JOIN_NETS": 1, "BLAST": 1, "PREDICT": 1, "CONCAT": 1, "RENAME_PREDICTIONS": 1, "CONCAT_RENAMED": 1, "DETACH_DUPLICATES": 1, "ISOTOOLS_TRUNCATION_DETECTOR": 1, "STRIP_TRUNCATIONS": 1}
+      "tasks": {"BAMSPLIT_CHROM": 2, "ALETSCH": 4, "BEAVER": 2, "RENAME_METASSEMBLY_GTF": 2, "XLOCI_EXTRACT_INTRONS": 1, "IIC_PREDICT_SPLICEOSOME": 1, "ISOTOOLS_CLASSIFY_INTRON_TWOPASS": 1, "ISOTOOLS_INTRON_RETENTION_TWOPASS": 1, "STRIP_RETENTIONS_TWOPASS": 1, "SORT_BED_TWOPASS": 1, "ISOTOOLS_NMD": 1, "SORT_BED_NMD": 1, "PUBLISH_FINAL_TRANSCRIPTS": 1, "WGET_SAMBA_WEIGHTS": 1, "GENEPRED_LINT": 2, "GENOMEMASK_SELENO": 1, "BEDTOOLS_INTERSECT_UNMASKED": 1, "CHUNKER": 1, "UNMASKED_CHUNKER": 1, "TRANSLATION": 2, "RNASAMBA": 2, "TRANSAID": 2, "JOIN_NETS": 2, "BLAST": 2, "PREDICT": 2, "CONCAT": 2, "RENAME_PREDICTIONS": 2, "CONCAT_RENAMED": 1, "DETACH_DUPLICATES": 1, "ISOTOOLS_TRUNCATION_DETECTOR": 1, "STRIP_TRUNCATIONS": 1}
     },
     "test-sb": {
       "output": "test_results/stringtie-beaver",

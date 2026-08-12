@@ -80,6 +80,7 @@
     "spliceai/spliceAiAcceptorMinus.bw": "906ebf39efd2484ec7248197330012982045a41d371660c63b1d9750992b80f5",
     "spliceai/spliceAiAcceptorPlus.bw": "108a7935b9b3319ddc20fa45ea2b9076077d7a09accf94f174160f74b48f9a2d",
     "spliceai/spliceAiDonorMinus.bw": "906ebf39efd2484ec7248197330012982045a41d371660c63b1d9750992b80f5",
-    "spliceai/spliceAiDonorPlus.bw": "56d94d6ed8bac4c64510aee6efae2314e402a3f49ec4e2bfa4195d92915fbb82"
+    "spliceai/spliceAiDonorPlus.bw": "56d94d6ed8bac4c64510aee6efae2314e402a3f49ec4e2bfa4195d92915fbb82",
+    "selenocysteine_sites.bed": "aaa03009d454ea115d8c2e139bd7672f124a5cbcf73b8d5b3b674efc369add2c"
   }
 }
