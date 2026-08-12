@@ -128,7 +128,7 @@ workflow XORF_RUN {
             params.xorf_chunk_size ?: 20,
             ch_samba_weights,
             params.xorf_predict_keep_raw,
-            null,                          // selenocysteine_sites — masking not ported
+            params.xorf_selenocysteine_sites,                          
             params.xorf_skip_netstart,
             params.xorf_rename_deactivate,
             params.xorf_do_polishing,

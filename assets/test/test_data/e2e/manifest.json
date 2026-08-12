@@ -68,7 +68,7 @@
     }
   },
   "sha256": {
-    "README.md": "14b2fb9fcc399aaf3d3b8dbebd0f2a6b7ff0a0a97ba61a31dc5059cac9cca01f",
+    "README.md": "b43f5dfacaf504df17a9fb35ef229bf29d139c87744bd90d371b596e56d03d74",
     "annotation.gtf": "a7bd22059bf4587b8db535d46b4e717f0276c5e8f23d4bb3d4ef316322f0a1c0",
     "chrom.sizes": "4ec3ac76d3e197143d0b9533ada887d2f6470891a1bcdcaf815a86370d265669",
     "genome.2bit": "ba3e31d76f0587bb3c5112e950580de2848ac90fccc0b667fd6c49c25f781537",
@@ -80,6 +80,7 @@
     "spliceai/spliceAiAcceptorMinus.bw": "906ebf39efd2484ec7248197330012982045a41d371660c63b1d9750992b80f5",
     "spliceai/spliceAiAcceptorPlus.bw": "108a7935b9b3319ddc20fa45ea2b9076077d7a09accf94f174160f74b48f9a2d",
     "spliceai/spliceAiDonorMinus.bw": "906ebf39efd2484ec7248197330012982045a41d371660c63b1d9750992b80f5",
-    "spliceai/spliceAiDonorPlus.bw": "56d94d6ed8bac4c64510aee6efae2314e402a3f49ec4e2bfa4195d92915fbb82"
+    "spliceai/spliceAiDonorPlus.bw": "56d94d6ed8bac4c64510aee6efae2314e402a3f49ec4e2bfa4195d92915fbb82",
+    "selenocysteine_sites.bed": "aaa03009d454ea115d8c2e139bd7672f124a5cbcf73b8d5b3b674efc369add2c"
   }
 }

@@ -8,7 +8,9 @@ around Aletsch 1.1.x's final-reference flush behavior and is excluded from
 assembly by the test profiles.
 
 The fixture contains two paired-end samples, a compact 2bit genome, GTF
-annotation, repeats, and four SpliceAI-compatible BigWig tracks. Read names
+annotation, repeats, four SpliceAI-compatible BigWig tracks, and a
+selenocysteine-sites BED (TGA codons, including two intronic sites on the test
+loci) that drives XORF's selenocysteine masking. Read names
 encode their intended class. `manifest.json` records source coordinates,
 designed counts, seed, and checksums.
 
