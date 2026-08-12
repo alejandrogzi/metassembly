@@ -271,7 +271,10 @@ workflow POLISH {
          )
          // XORF emits one merged bed per transcript with the default
          // skip_joined_concat=false; the list guard keeps classify's path(bed) safe.
-         ch_xorf_hq = XORF_RUN.out.files.map { meta, bed, tsv -> [ meta, bed instanceof List ? bed[0] : bed ] }
+         // With selenocysteine masking the merged id is `<t>_flnc@<masked|UNMSK>`
+         // and which group wins the submodule's collect is order-dependent, so
+         // canonicalize to the deterministic `<t>_flnc` before it keys filenames.
+         ch_xorf_hq = XORF_RUN.out.files.map { meta, bed, tsv -> [ meta + [ id: meta.id.tokenize('@')[0] ], bed instanceof List ? bed[0] : bed ] }
          ch_versions = ch_versions.mix(XORF_RUN.out.versions)
       }
 
