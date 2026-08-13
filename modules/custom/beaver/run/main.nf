@@ -11,8 +11,8 @@ process BEAVER {
     tuple val(meta), path(gtfs)
 
     output:
-    tuple val(meta), path("beaver_output/*gtf"), emit: gtf
-    tuple val(meta), path("beaver_output/*csv"), emit: csv
+    tuple val(meta), path("beaver_output/*gtf"), optional: true, emit: gtf
+    tuple val(meta), path("beaver_output/*csv"), optional: true, emit: csv
     path "*.txt"                               , emit: gtf_list
     path "versions.yml"                        , emit: versions
 
@@ -30,15 +30,22 @@ process BEAVER {
     # Create output directory
     mkdir -p beaver_output
 
-    # Run Beaver
-    beaver \\
-        ${prefix}.gtf_list.txt \\
-        ${prefix} \\
-        -t ${task.cpus} \\
-        $args
+    # Assemble only when there is something to assemble: a per-chromosome run with
+    # no transcripts (Aletsch assembled nothing) must skip beaver rather than die
+    # on the unconditional mv below.
+    if awk -F'\\t' '\$3 == "transcript" { f = 1 } END { exit !f }' ${gtfs}; then
+        # Run Beaver
+        beaver \\
+            ${prefix}.gtf_list.txt \\
+            ${prefix} \\
+            -t ${task.cpus} \\
+            $args
 
-    mv ${prefix}.gtf beaver_output/
-    mv ${prefix}_feature.csv beaver_output/
+        mv ${prefix}.gtf beaver_output/
+        mv ${prefix}_feature.csv beaver_output/
+    else
+        echo "[WARN] ${meta.id}: no assembled transcripts in input (likely too few reads on this chromosome); skipping beaver" >&2
+    fi
 
     if [ ${params.beaver_keep_aletsch_gtf} == false ]; then
         for gtf in ${gtfs}; do
