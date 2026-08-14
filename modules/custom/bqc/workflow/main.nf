@@ -17,7 +17,7 @@ process BQC {
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         '' :
-        'ghcr.io/hillerlab/bqc@sha256:2f7a20ea96395eecb20c41772fd17f753a3ef9f73fea73b297b15df64b842e95' }"
+        'ghcr.io/hillerlab/bqc:latest' }"
 
     input:
     tuple val(meta), path(cbq)
