@@ -57,7 +57,12 @@ process ISOTOOLS_ORPHAN {
     """
 
     stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+
+    meta_scraps = meta.clone()
+    meta_scraps.id = meta.id + '.scraps'
     """
+    mkdir -p orphans
     touch orphans/${prefix}.hq.bed
     touch orphans/${prefix}.scraps.bed
 

@@ -60,9 +60,12 @@ process ISOTOOLS_FUSION {
     """
 
     stub:
-    def prefix    = task.ext.prefix ?: "${meta.id}_${meta.chr}"
+    def prefix    = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}/*
+    mkdir -p ${prefix}
+    touch ${prefix}/fusions.bed
+    touch ${prefix}/fusions.free.bed
+    touch ${prefix}/fusions.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

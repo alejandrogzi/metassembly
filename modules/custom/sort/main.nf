@@ -36,7 +36,7 @@ process SORT_BED {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch *.bed
+    touch ${prefix}.sorted.bed
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

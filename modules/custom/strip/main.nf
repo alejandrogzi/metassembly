@@ -51,8 +51,12 @@ process STRIP_OCCURRENCES {
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+
+    meta2 = meta.clone()
+    meta2.id  = "${meta.id}.discard"
     """
-    touch *.bed
+    touch ${prefix}.striped.bed
+    touch ${prefix}.discard.bed
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
