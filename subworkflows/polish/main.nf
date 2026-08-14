@@ -75,10 +75,34 @@ workflow POLISH_TWOPASS {
                 tuple(hq_meta, bed, iic)
             }
 
+        // NOTE: re-using inputs as references, otherwise new introns supported
+        // are not categorized because they are out of the reference annotation.
+        // This addition does not disrupt classification, because all introns in
+        // input have already passed the first pass.
+        //
+        // The ORF set is collapsed to ONE merged bed: passing hq per-transcript
+        // staged reads and annotation under the same basename triggers
+        // Nextflow's "input file name collision". The merged element is then
+        // replicated to one per reads element, because plain multi-channel
+        // process inputs zip pairwise and a single annotation element would
+        // truncate classify to one task.
+        ch_hq_annotation = hq
+            .map { meta, bed -> bed }
+            .collectFile(
+                name: "${params.prefix ?: 'polish'}.hq_annotation.bed",
+                newLine: false
+            )
+            .map { bed -> [ [ id: bed.baseName ], bed ] }
+
+        ch_hq_annotation_n = hq
+            .map { meta, bed -> meta }
+            .combine(ch_hq_annotation)
+            .map { meta, ann_meta, ann_bed -> [ ann_meta, ann_bed ] }
+
         ISOTOOLS_CLASSIFY_INTRON_TWOPASS(
             ch_classify_inputs,
             genome,
-            annotation,
+            ch_hq_annotation_n,
             repeats,
             splice_scores
         )

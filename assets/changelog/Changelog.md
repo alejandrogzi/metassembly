@@ -61,6 +61,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2026-08-14
+
+### Fixed
+
+- Two-pass polishing failed with a process "input file name collision" when `do_twopass_polish` is enabled: `POLISH_TWOPASS` passed the XORF ORF predictions (`hq`) as the `--toga` reference annotation, and the same bed was staged as both the reads and the annotation input of `ISOTOOLS_CLASSIFY_INTRON_TWOPASS`. The ORF set is now collapsed to a single merged annotation bed (`<prefix>.hq_annotation.bed`) that is replicated to one element per transcript — nextflow pairs multi-channel process inputs pairwise, so a single merged element would truncate classification to one transcript. Each read is now reclassified against the full ORF reference, mirroring the first pass.
+- `-stub-run` failed in the polish path on several process stubs that did not produce their declared outputs: `ISOTOOLS_FUSION` (`touch ${prefix}/*` without creating the directory, plus a stray `_${meta.chr}` suffix), `ISOTOOLS_ORPHAN` (undefined `prefix` and an undeclared `meta_scraps` output value), `SORT_BED` (`touch *.bed` re-touched the input, never creating `<prefix>.sorted.bed`), `STRIP_OCCURRENCES` (same pattern for `*.striped.bed`/`*.discard.bed`, plus an undeclared `meta2` output value), `ISOTOOLS_INTRON_RETENTION` (`touch *.tsv` only re-touched the staged input tsv, which Nextflow never binds as an output, so the descriptor channel stayed empty), and `BEDGRAPHTOBIGWIG` (placeholder `.BEDGRAPHTOBIGWIG` name while the output declares `*.bw`). Each stub now uses its script prefix and creates the declared output files, so a stub run executes the full metassembly→polish first-pass graph. (The vendored XORF gitlink's stubs still lack several outputs in stub mode.)
+
+### Changed
+
+- Version bumped to `0.1.2` in the pipeline manifest.
+
+---
+
 ## [0.1.1] - 2026-08-10
 
 ### Added

@@ -46,7 +46,7 @@ process BEDGRAPHTOBIGWIG {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.BEDGRAPHTOBIGWIG
+    touch ${prefix}.bw
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

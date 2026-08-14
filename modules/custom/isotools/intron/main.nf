@@ -37,8 +37,11 @@ process ISOTOOLS_INTRON_RETENTION {
     """
 
     stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch *.tsv
+    # input-staged introns tsv must not be re-touched: Nextflow never binds an
+    # input file as an output, so the descriptor glob would stay empty
+    touch ${prefix}.recover.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
