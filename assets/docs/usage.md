@@ -380,7 +380,7 @@ published separately so nothing is silently lost.
 | `isotools_classify_rt_frequency_threshold` | `0.5` | Frequency threshold for classifying a transcript as read-through. |
 | `isotools_classify_intron_frequency_threshold` | `0.5` | Frequency threshold for classifying intron retention. |
 | `isotools_classify_maxent_min_ss_signal` | `1.5` | Minimum MaxEnt score for a splice site to count as real. |
-| `do_twopass_polish` | `false` | Re-review the transcripts that were discarded for **intron retention** in the first pass, this time ignoring UTR retentions (which are often real). Rescued transcripts are added back to the final set. Costs a second classification round. |
+| `do_twopass_polish` | `false` | Re-review the transcripts that were discarded for **intron retention** in the first pass, this time ignoring UTR retentions (which are often real). The second-pass `--toga` reference is the union of the reference annotation and the XORF ORF models. Rescued transcripts are added back to the final set. Costs a second classification round. |
 
 ### 4.11 BigBed conversion
 
