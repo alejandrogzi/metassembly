@@ -122,24 +122,27 @@ def verify_profile(profile: str) -> None:
     require(dict(gtf_counts) == expected["gtf_transcripts"], f"metassembly counts changed: {dict(gtf_counts)}")
     require(len(transcript_ids) == len(set(transcript_ids)), "metassembly transcript IDs are not globally unique")
 
-    final_files = list((output / "10_final").glob(expected["final_glob"]))
-    require(len(final_files) == 1, f"expected one final BED, found {len(final_files)}")
-    final_counts, final_ids = chromosome_counts(final_files[0])
-    require(dict(final_counts) == expected["final_records"], f"final predictions changed: {dict(final_counts)}")
-    require(len(final_ids) == len(set(final_ids)), "final transcript IDs are not unique")
-    with final_files[0].open() as handle:
-        coordinates = [
-            (fields[0], int(fields[1]), int(fields[2]))
-            for line in handle if line.strip()
-            for fields in [line.rstrip().split("\t")]
-        ]
-    require(coordinates == sorted(coordinates), "final BED is not coordinate sorted")
-    for relative, count in expected["polish_line_counts"].items():
-        path = output / relative
-        require(path.is_file(), f"polishing checkpoint missing: {relative}")
-        require(line_count(path) == count, f"polishing checkpoint changed: {relative}")
-    for relative in expected.get("absent_paths", []):
-        require(not (output / relative).exists(), f"unexpected polishing output: {relative}")
+    final_total = None
+    if expected.get("final_glob"):
+        final_files = list((output / "10_final").glob(expected["final_glob"]))
+        require(len(final_files) == 1, f"expected one final BED, found {len(final_files)}")
+        final_counts, final_ids = chromosome_counts(final_files[0])
+        require(dict(final_counts) == expected["final_records"], f"final predictions changed: {dict(final_counts)}")
+        require(len(final_ids) == len(set(final_ids)), "final transcript IDs are not unique")
+        with final_files[0].open() as handle:
+            coordinates = [
+                (fields[0], int(fields[1]), int(fields[2]))
+                for line in handle if line.strip()
+                for fields in [line.rstrip().split("\t")]
+            ]
+        require(coordinates == sorted(coordinates), "final BED is not coordinate sorted")
+        for relative, count in expected["polish_line_counts"].items():
+            path = output / relative
+            require(path.is_file(), f"polishing checkpoint missing: {relative}")
+            require(line_count(path) == count, f"polishing checkpoint changed: {relative}")
+        for relative in expected.get("absent_paths", []):
+            require(not (output / relative).exists(), f"unexpected polishing output: {relative}")
+        final_total = sum(final_counts.values())
 
     task_counts = completed_tasks(output)
     for process, count in expected["tasks"].items():
@@ -147,7 +150,10 @@ def verify_profile(profile: str) -> None:
     for process in expected.get("forbidden_tasks", []):
         require(task_counts[process] == 0, f"disabled two-pass task ran unexpectedly: {process}")
 
-    print(f"verified {profile}: {len(transcript_ids)} metassembly and {sum(final_counts.values())} final transcript(s)")
+    if final_total is None:
+        print(f"verified {profile}: {len(transcript_ids)} metassembly transcript(s)")
+    else:
+        print(f"verified {profile}: {len(transcript_ids)} metassembly and {final_total} final transcript(s)")
 
 
 def main() -> None:

@@ -34,12 +34,12 @@
     "star_ignore_gtf_for_mapping":  true,
     "star_twopass_junctions_file":  null,
 
-    "//4a": "── CBQ reads [optional; all require aligner=ruSTAR] ──────────────────────",
+    "//4a": "── CBQ reads [optional; encode_before_alignment requires aligner=ruSTAR] ─",
     "bqtools_encode_fastqs":           false,
     "bqtools_encode_before_alignment": false,
     "bqc_min_length":                  15,
     "bqc_quality_tail":                15,
-    "bqc_adapter_auto_detect":         false,
+    "bqc_adapter_auto_detect":         true,
 
     "//5": "── Assembly [optional] ──────────────────────────────────",
     "skip_assembly":  false,

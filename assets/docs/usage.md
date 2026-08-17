@@ -123,6 +123,7 @@ engine and profiles work before touching real data:
 assets/ci/e2e/run.sh test          # default Aletsch + Beaver
 assets/ci/e2e/run.sh test-sb       # StringTie 3 + Beaver
 assets/ci/e2e/run.sh test-tm       # TransMeta
+assets/ci/e2e/run.sh test-bqc-star # bqc + decode + STAR
 assets/ci/e2e/run.sh all           # the whole matrix
 ```
 
@@ -241,7 +242,7 @@ greatly improves detection of novel splice sites.
 
 | Parameter | Default | What it does |
 |-----------|---------|--------------|
-| `aligner` | `STAR` | Which aligner runs the two-pass scheme. `STAR` reads gzipped FASTQ only; `ruSTAR` (a Rust reimplementation) reads FASTQ **and** CBQ. See [4.6a](#46a-cbq-reads-bqtools--bqc). |
+| `aligner` | `STAR` | Which aligner runs the two-pass scheme. `STAR` reads gzipped FASTQ only (CBQ is decoded after deacon); `ruSTAR` (a Rust reimplementation) reads FASTQ **and** CBQ natively. See [4.6a](#46a-cbq-reads-bqtools--bqc). |
 | `star_index_path` | – | Path to an existing STAR index (or `.tar.gz` of one). If unset, the index is built from your genome. |
 | `star_ignore_gtf_for_index` | `false` | Build the STAR index **without** the annotation (`--sjdbGTFfile`). |
 | `star_ignore_gtf_for_mapping` | `true` | Ignore the annotation during alignment, relying on the junctions found in pass one. This is the recommended 2-pass behaviour. |
@@ -266,16 +267,18 @@ use it. `fastp` and `fq lint` cannot read CBQ, so on the CBQ path quality
 control is done by `bqc` instead; the choice is derived from the input format
 and is not configurable.
 
-All of this is **opt-in and off by default**. Because STAR cannot read CBQ, any
-of it requires `--aligner ruSTAR`.
+All of this is **opt-in and off by default**. STAR cannot read CBQ natively, so
+on the STAR path xasm decodes after deacon (`bqc → deacon → decode → STAR`).
+`bqtools_encode_before_alignment` still requires `--aligner ruSTAR` — encoding
+just before STAR would only be decoded again.
 
 There are three ways to get CBQ, and they differ in *when* the encode happens:
 
 | How | Path | Use when |
 |-----|------|----------|
-| Put `.cbq` files in `input_dir` | `bqc → deacon → ruSTAR` | Your reads are already CBQ. Nothing to set beyond `--aligner ruSTAR`. |
-| `bqtools_encode_fastqs = true` | `fastq → cbq → bqc → deacon → ruSTAR` | You want the storage saving across the **whole** run. |
-| `bqtools_encode_before_alignment = true` | `fastq → fastp → deacon → cbq → ruSTAR` | You want to keep the validated fastp+deacon path and only cut the peak disk of the alignment queue. |
+| Put `.cbq` files in `input_dir` | `bqc → deacon → ruSTAR` **or** `bqc → deacon → decode → STAR` | Your reads are already CBQ. Set `--aligner` to match. |
+| `bqtools_encode_fastqs = true` | `fastq → cbq → bqc → deacon → ruSTAR` **or** `fastq → cbq → bqc → deacon → decode → STAR` | You want the storage saving across QC and deacon, and (with STAR) `bqc` as the trimmer. |
+| `bqtools_encode_before_alignment = true` | `fastq → fastp → deacon → cbq → ruSTAR` | You want to keep the validated fastp+deacon path and only cut the peak disk of the alignment queue. ruSTAR only. |
 
 The two encode options are mutually exclusive. Mixing `.cbq` and FASTQ samples
 in one `input_dir` is supported — each sample is routed by its own extension.
@@ -283,12 +286,12 @@ in one `input_dir` is supported — each sample is routed by its own extension.
 | Parameter | Default | What it does |
 |-----------|---------|--------------|
 | `bqtools_encode_fastqs` | `false` | Encode FASTQ inputs to `.cbq` before QC. Your original files in `input_dir` are never deleted. |
-| `bqtools_encode_before_alignment` | `false` | Encode to `.cbq` after decontamination, just for the aligner. The intermediate deacon FASTQs **are** deleted (they are work-directory files, and nothing downstream removes them otherwise). |
+| `bqtools_encode_before_alignment` | `false` | Encode to `.cbq` after decontamination, just for the aligner (**ruSTAR only**). The intermediate deacon FASTQs **are** deleted (they are work-directory files, and nothing downstream removes them otherwise). |
 | `bqc_min_length` | `15` | `--min-length`: reject reads shorter than this. Always sent — `bqc` refuses to run with no operation configured. |
 | `bqc_quality_tail` | `15` | `--quality-tail`: trim 3' bases until the trailing window reaches this Phred score. |
 | `bqc_poly_g` | `true` | `--poly-g`: trim G-rich 3' tails (two-colour chemistry). |
 | `bqc_max_n` | – | `--max-n`: reject reads with more than this many ambiguous bases. |
-| `bqc_adapter_auto_detect` | `false` | `--auto-detect`: infer adapters from the data. **Off by default on purpose:** unlike fastp's detection, `bqc` *aborts the task* when the evidence is ambiguous (pooled libraries, concatenated runs). Prefer the explicit sequences below. |
+| `bqc_adapter_auto_detect` | `true` | `--auto-detect`: infer adapters from the data. Unlike fastp's detection, `bqc` *aborts the task* when the evidence is ambiguous (pooled libraries, concatenated runs). Turn off with `--bqc_adapter_auto_detect false` or pass explicit sequences below. |
 | `bqc_adapter_r1` / `bqc_adapter_r2` | – | Explicit adapter sequences per mate. |
 | `bqc_extra_args` | – | Extra arguments passed verbatim to `bqc workflow`. |
 
@@ -446,7 +449,7 @@ Profiles are chosen with `-profile <name>` (comma-separate to combine, e.g.
 | `gpu` | Add GPU flags to the container run (only useful if a process requests an accelerator). |
 | `gitpod` | Limited resources (4 CPUs, 8 GB) for Gitpod-style environments. |
 | `debug` | More verbose Nextflow diagnostics. |
-| `test`, `test-sb`, `test-tm`, `test-rustar`, `test-polish` | Smoke-test profiles that run the bundled test data (see section 2); `test-rustar` is a smoke-checked CBQ path (see [4.6a](#46a-cbq-reads-bqtools--bqc)). |
+| `test`, `test-sb`, `test-tm`, `test-rustar`, `test-bqc-star`, `test-polish` | Smoke-test profiles that run the bundled test data (see section 2); `test-rustar` is a smoke-checked CBQ+ruSTAR path, `test-bqc-star` is the CBQ+`bqc`+decode+STAR path checked against the same samplesheet numbers as `test` (see [4.6a](#46a-cbq-reads-bqtools--bqc)). |
 
 ---
 

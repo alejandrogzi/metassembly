@@ -61,6 +61,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-08-17
+
+### Added
+
+- STAR can consume the CBQ/bqc path. `bqtools_encode_fastqs` or native `.cbq` inputs now run `bqc → deacon → bqtools decode → STAR` instead of requiring `--aligner ruSTAR`. New `BQTOOLS_DECODE` module expands a paired `.cbq` back to `${id}_1.fastq.gz` / `${id}_2.fastq.gz`. `bqtools_encode_before_alignment` remains ruSTAR-only.
+- `test-bqc-star` end-to-end profile exercises encode → bqc → deacon → decode → STAR on the existing fixture and is checked against the same samplesheet numbers as `test` (pipeline-integrity CI and the nightly matrix).
+
+### Changed
+
+- `bqc_adapter_auto_detect` now defaults to `true` (`--auto-detect`). `bqc` still aborts when adapter evidence is ambiguous; turn it off or pass explicit `bqc_adapter_r1` / `bqc_adapter_r2`. The e2e `test-rustar` and `test-bqc-star` profiles set it back to `false` because the synthetic fixture looks like a pooled library.
+- `BQTOOLS_ENCODE` (and the new decode module) pull `ghcr.io/hillerlab/bqtools:latest` instead of a digest pin.
+- Version bumped to `0.1.3` in the pipeline manifest.
+
+---
+
 ## [0.1.2] - 2026-08-14
 
 ### Fixed

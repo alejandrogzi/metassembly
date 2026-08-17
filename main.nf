@@ -58,13 +58,16 @@ if (params.help) {
         --xorf_call_orfs      BOOLEAN   Run XORF ORF calling on first-pass HQ transcripts [default: false]
         --xorf_custom_database PATH     Custom protein database for ORF calling (.dmnd/.dmnd.gz replaces the default; .fa/.fasta appended to SwissProt) [default: null; rest of XORF options in params.json]
 
-    Optional parameters (CBQ reads, all require --aligner ruSTAR):
+    Optional parameters (CBQ reads):
         --aligner                          STRING    Aligner [options: STAR, ruSTAR] [default: STAR]
-                                                     STAR reads fastq only; ruSTAR reads fastq and cbq
+                                                     STAR reads fastq only (CBQ is decoded after deacon);
+                                                     ruSTAR reads fastq and cbq
         --bqtools_encode_fastqs            BOOLEAN   Encode fastq inputs to .cbq up front; QC then runs
-                                                     via bqc instead of fastp [default: false]
+                                                     via bqc instead of fastp. With --aligner STAR the
+                                                     path is encode → bqc → deacon → decode → STAR
+                                                     [default: false]
         --bqtools_encode_before_alignment  BOOLEAN   Keep fastp+deacon on fastq and encode to .cbq only
-                                                     for the aligner [default: false]
+                                                     for the aligner (ruSTAR only) [default: false]
         Native .cbq files in --input_dir are detected automatically and need neither flag.
 
     Profiles:
@@ -149,9 +152,10 @@ def validateRun() {
             errors << "  --input_dir '${params.input_dir}' contains no *{1,2}.f*q.gz or *.cbq reads"
         }
 
-        // STAR cannot read CBQ; ruSTAR reads both, so no guard is needed the other way.
-        if (params.aligner == 'STAR' && (has_cbq || params.bqtools_encode_fastqs || params.bqtools_encode_before_alignment)) {
-            errors << "  --aligner STAR cannot read CBQ; use --aligner ruSTAR for .cbq inputs or the bqtools_encode_* options"
+        // STAR cannot read CBQ natively. encode_fastqs / native .cbq are decoded
+        // after deacon; encode_before_alignment would encode only to decode again.
+        if (params.aligner == 'STAR' && params.bqtools_encode_before_alignment) {
+            errors << "  --bqtools_encode_before_alignment requires --aligner ruSTAR (STAR cannot read CBQ; encoding just before STAR would be immediately decoded)"
         }
     }
 

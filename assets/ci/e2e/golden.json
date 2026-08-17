@@ -42,6 +42,14 @@
       "smoke": true,
       "tasks": ["BQTOOLS_ENCODE_INPUT", "BQC", "DEACON_FILTER", "RUSTAR_ALIGN_1PASS", "RUSTAR_ALIGN_2PASS", "SAMTOOLS_INDEX", "ALETSCH", "REMOVE_BAMS"],
       "forbidden_tasks": ["FASTP", "STAR_ALIGN_1PASS", "STAR_ALIGN_2PASS"]
+    },
+    "test-bqc-star": {
+      "output": "test_results/bqc-star",
+      "metassembly": "06_beaver/test.gtf",
+      "assembled": {"sampleA": 4, "sampleB": 4},
+      "gtf_transcripts": {"chrTestA": 2, "chrTestB": 2},
+      "tasks": {"BQTOOLS_ENCODE_INPUT": 2, "BQC": 2, "BQTOOLS_DECODE": 2, "DEACON_FILTER": 2, "STAR_ALIGN_1PASS": 2, "STAR_ALIGN_2PASS": 2, "BAMSPLIT_CHROM": 2, "ALETSCH": 4, "BEAVER": 2, "RENAME_METASSEMBLY_GTF": 2},
+      "forbidden_tasks": ["FASTP", "RUSTAR_ALIGN_1PASS", "RUSTAR_ALIGN_2PASS"]
     }
   }
 }

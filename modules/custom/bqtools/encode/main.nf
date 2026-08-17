@@ -17,7 +17,7 @@ process BQTOOLS_ENCODE {
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         '' :
-        'ghcr.io/hillerlab/bqtools@sha256:3dcb1e2e1584178b64dad4b63bc734ad468b36efc2c8d5884edbe3e8371a1353' }"
+        'ghcr.io/hillerlab/bqtools:latest' }"
 
     input:
     tuple val(meta), path(reads)
