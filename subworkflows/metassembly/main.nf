@@ -18,6 +18,7 @@ include { ASSEMBLY } from '../assembly/main'
 
 include { BQTOOLS_ENCODE as BQTOOLS_ENCODE_INPUT } from '../../modules/custom/bqtools/encode/main'
 include { BQTOOLS_ENCODE as BQTOOLS_ENCODE_ALIGN } from '../../modules/custom/bqtools/encode/main'
+include { BQTOOLS_DECODE } from '../../modules/custom/bqtools/decode/main'
 
 include { GTF_REMOVE_DIRT } from '../../modules/custom/gtf/clean/main'
 include { GXF2BED } from '../../modules/custom/gxf2bed/main'
@@ -157,7 +158,27 @@ workflow METASSEMBLE {
             ch_aligner_reads = ch_processed_reads.processed_reads
         }
 
-        ch_final_reads = ch_aligner_reads
+        // STAR cannot read CBQ. Decode after deacon so bqc + deacon stay on CBQ
+        // and only the aligner input becomes gzipped FASTQ.
+        // delete_input is true because the deacon .cbq is a work-dir intermediate.
+        if (params.aligner == 'STAR') {
+            BQTOOLS_DECODE(
+                ch_aligner_reads.filter { _meta, reads -> isCbq(reads) },
+                true
+            )
+
+            ch_versions = ch_versions.mix(BQTOOLS_DECODE.out.versions)
+
+            ch_star_reads = BQTOOLS_DECODE.out.fastq
+                .map { meta, reads ->
+                    [meta, reads instanceof List ? reads.sort { it.name } : [reads]]
+                }
+                .mix(ch_aligner_reads.filter { _meta, reads -> !isCbq(reads) })
+        } else {
+            ch_star_reads = ch_aligner_reads
+        }
+
+        ch_final_reads = ch_star_reads
             .combine(ch_indexes.star_index)
             .map { meta, reads, index ->
                 [meta, reads, index]

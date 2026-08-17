@@ -7,9 +7,9 @@ engine=${TEST_ENGINE:-docker}
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 
 case "$profile" in
-  test|test-sb|test-tm|test-rustar) profiles=("$profile") ;;
-  all) profiles=(test test-sb test-tm test-rustar) ;;
-  *) echo "usage: $0 {test|test-sb|test-tm|test-rustar|all} [run|verify]" >&2; exit 2 ;;
+  test|test-sb|test-tm|test-rustar|test-bqc-star) profiles=("$profile") ;;
+  all) profiles=(test test-sb test-tm test-rustar test-bqc-star) ;;
+  *) echo "usage: $0 {test|test-sb|test-tm|test-rustar|test-bqc-star|all} [run|verify]" >&2; exit 2 ;;
 esac
 
 if [[ "$mode" != verify ]]; then

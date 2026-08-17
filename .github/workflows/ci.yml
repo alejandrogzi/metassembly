@@ -36,10 +36,14 @@ jobs:
 
       - name: Validate Nextflow profiles
         run: |
-          for profile in test test-sb test-tm test-polish test-rustar; do
+          for profile in test test-sb test-tm test-polish test-rustar test-bqc-star; do
             nextflow config -flat . -profile "$profile" > /dev/null
           done
 
       - name: Run default end-to-end smoke test
         timeout-minutes: 30
         run: assets/ci/e2e/run.sh test
+
+      - name: Run bqc + STAR end-to-end number check
+        timeout-minutes: 30
+        run: assets/ci/e2e/run.sh test-bqc-star
