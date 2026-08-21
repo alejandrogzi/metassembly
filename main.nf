@@ -171,6 +171,10 @@ def validateFromPolishing() {
     if (!params.genome)      errors << "  --genome is required"
     if (!params.annotation)  errors << "  --annotation is required"
 
+    if (params.do_twopass_polish && !params.xorf_call_orfs) {
+        errors << "  --do_twopass_polish requires --xorf_call_orfs true (twopass needs ORF calls from XORF)"
+    }
+
     if (errors) {
         log.error "Parameter validation failed:\n${errors.join('\n')}"
         System.exit(1)
@@ -314,7 +318,7 @@ workflow FULL_RUN {
 
 // ── Checkpoint: start from polishing step (skip metassembly) ─────────────────────
 workflow FROM_POLISHING {
-    // validateFromPolishing()
+    validateFromPolishing()
 
     ch_versions = Channel.empty()
 

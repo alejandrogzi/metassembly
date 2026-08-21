@@ -35,6 +35,7 @@ include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_NMD } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_XORF } from '../../modules/custom/sort/main'
 include { XORF_RUN } from '../xorf/main'
 
 
@@ -295,21 +296,28 @@ workflow POLISH {
             ch_fl_hq_transcripts,
             ch_genome
          )
-         // XORF emits one merged bed per transcript with the default
-         // skip_joined_concat=false; the list guard keeps classify's path(bed) safe.
          // With selenocysteine masking the merged id is `<t>_flnc@<masked|UNMSK>`
          // and which group wins the submodule's collect is order-dependent, so
          // canonicalize to the deterministic `<t>_flnc` before it keys filenames.
-         ch_xorf_hq = XORF_RUN.out.files.map { meta, bed, tsv -> [ meta + [ id: meta.id.tokenize('@')[0] ], bed instanceof List ? bed[0] : bed ] }
+         // Upstream RENAME now emits only *.renamed.bed, so bed is a single file.
+         ch_xorf_hq = XORF_RUN.out.files.map { meta, bed, tsv ->
+             if (bed instanceof List) error "XORF emitted List bed for ${meta.id}: ${bed} — expected single file (check params.xorf_skip_joined_concat / rename module)"
+             [ meta + [ id: meta.id.tokenize('@')[0] ], bed ]
+         }
          ch_versions = ch_versions.mix(XORF_RUN.out.versions)
       }
 
-      ch_final_hq = ch_fl_hq_transcripts
+      ch_final_hq = Channel.empty()
       ch_final_retentions = STRIP_RETENTIONS.out.discard
 
       if (do_twopass_polish) {
+         // Fail fast if twopass requested but ORF channel is empty.
+         // main.nf validates FULL_RUN, but FROM_POLISHING bypasses it and XORF can
+         // still emit empty if all ORFs filtered — without this, POLISH_TWOPASS
+         // silently yields empty or retention-only output.
+         ch_xorf_hq_for_twopass = ch_xorf_hq.ifEmpty { error "POLISH_TWOPASS requires XORF ORF predictions but ch_xorf_hq is empty. Ensure params.xorf_call_orfs=true and XORF produced output (check xorf filters / truncation / selenocysteine masking)." }
          POLISH_TWOPASS(
-            ch_xorf_hq,
+            ch_xorf_hq_for_twopass,
             STRIP_RETENTIONS.out.discard,
             IIC_PREDICT_SPLICEOSOME.out.iic,
             ch_genome,
@@ -321,10 +329,22 @@ workflow POLISH {
          ch_final_hq = POLISH_TWOPASS.out.hq
          ch_final_retentions = POLISH_TWOPASS.out.retentions
          ch_versions = ch_versions.mix(POLISH_TWOPASS.out.versions)
+      } else if (params.xorf_call_orfs) {
+         // ORF-only path (default: xorf=true, twopass=false) previously ignored
+         // XORF and fed first-pass HQ to NMD. Now correctly route ORF predictions
+         // to NMD/publish. Sort pre-NMD for determinism (mirrors twopass/flnc sorted).
+         ch_xorf_hq_for_nmd = ch_xorf_hq.ifEmpty { error "xorf_call_orfs=true but XORF produced no HQ BED (ch_xorf_hq empty). Check XORF filtering / truncation." }
+         SORT_BED_XORF(ch_xorf_hq_for_nmd)
+         ch_final_hq = SORT_BED_XORF.out.sorted
+         ch_versions = ch_versions.mix(SORT_BED_XORF.out.versions)
+      } else {
+         ch_final_hq = ch_fl_hq_transcripts
       }
 
+      // Guard NMD input: fail fast instead of silently publishing nothing
+      ch_final_hq_guarded = ch_final_hq.ifEmpty { error "No HQ transcripts available for NMD (ch_final_hq empty). Check upstream filtering / XORF / twopass." }
       ISOTOOLS_NMD(
-        ch_final_hq
+        ch_final_hq_guarded
       )
       // iso-nmd does not preserve coordinate order; re-sort so the published
       // final BED stays sorted (bedToBigBed requires it) and keeps the
