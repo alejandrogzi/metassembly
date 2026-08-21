@@ -90,7 +90,7 @@ workflow POLISH_TWOPASS {
         // truncate classify to one task.
         ch_toga = hq
             .map { _meta, bed -> bed }
-            .mix(annotation.map { _meta, bed -> bed })
+            .concat(annotation.map { _meta, bed -> bed })
             .collectFile(
                 name: "${params.prefix ?: 'polish'}.twopass_toga.bed",
                 newLine: false
@@ -139,7 +139,7 @@ workflow POLISH_TWOPASS {
         // ORF HQ and its retention discards are disjoint. Mixing and
         // sorting also falls back naturally to HQ when there are no retentions.
         ch_merged_hq = hq
-            .mix(STRIP_RETENTIONS_TWOPASS.out.hq)
+            .concat(STRIP_RETENTIONS_TWOPASS.out.hq)
             .map { meta, bed -> bed }
             .collectFile(
                 name: "${params.prefix ?: 'polish'}.twopass.bed",
