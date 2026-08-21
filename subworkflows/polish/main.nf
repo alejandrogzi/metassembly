@@ -93,7 +93,8 @@ workflow POLISH_TWOPASS {
             .concat(annotation.map { _meta, bed -> bed })
             .collectFile(
                 name: "${params.prefix ?: 'polish'}.twopass_toga.bed",
-                newLine: false
+                newLine: false,
+                sort: true
             )
             .map { bed -> [ [ id: bed.baseName ], bed ] }
 
