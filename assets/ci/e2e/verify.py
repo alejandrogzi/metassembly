@@ -127,14 +127,7 @@ def verify_profile(profile: str) -> None:
         final_files = list((output / "10_final").glob(expected["final_glob"]))
         require(len(final_files) == 1, f"expected one final BED, found {len(final_files)}")
         final_counts, final_ids = chromosome_counts(final_files[0])
-        # v0.1.4 RENAME fix + determinism work made test flaky (2,2 vs 3,2
-        # for chrTestA due to rescued geneI0T1). Accept either while
-        # investigating remaining non-determinism (mix→concat, localHash).
-        allowed = [expected["final_records"]]
-        if profile == "test":
-            allowed.append({"chrTestA": 3, "chrTestB": 2})
-            allowed.append({"chrTestA": 2, "chrTestB": 2})
-        require(dict(final_counts) in allowed, f"final predictions changed: {dict(final_counts)} not in {allowed}")
+        require(dict(final_counts) == expected["final_records"], f"final predictions changed: {dict(final_counts)}")
         require(len(final_ids) == len(set(final_ids)), "final transcript IDs are not unique")
         with final_files[0].open() as handle:
             coordinates = [
