@@ -61,6 +61,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.4] - 2026-08-21
+
+### Fixed
+
+- XORF ORF predictions now reach the final output on the default path (`--xorf_call_orfs true`, `--do_twopass_polish false`). `POLISH` previously assigned `ch_final_hq = ch_fl_hq_transcripts` and only overwrote it inside the twopass branch, so `ISOTOOLS_NMD` and `PUBLISH_FINAL_TRANSCRIPTS` received first-pass HQ transcripts and the entire XORF run was silently discarded (only its versions entry survived). The ORF-only branch now sorts the ORF BED (`SORT_BED_XORF`) and feeds it to NMD/publish; the pre-ORF transcripts are used only when ORF calling is disabled.
+- Empty-channel failures no longer pass silently. If XORF produces no predictions while twopass polish is requested — or when there is nothing to feed NMD — the run aborts with an explicit message instead of `POLISH_TWOPASS` degrading to empty or retention-only output and publishing nothing. Guards are skipped under `-stub` runs.
+- `RENAME_PREDICTIONS` emitted both the staged input BED and `${prefix}.renamed.bed` (its `path("*.bed")` glob matched the staged input), so `out.files` carried a two-element list per group and `CONCAT_RENAMED` concatenated both copies, duplicating every record. The module now emits only `*.renamed.bed` / `*.renamed.tsv`, and `POLISH` errors if a list ever reaches it instead of silently keeping `bed[0]` (which could pick the pre-rename file).
+- The `polish` checkpoint validates again: `FROM_POLISHING` calls `validateFromPolishing()`, which now rejects `--do_twopass_polish` without `--xorf_call_orfs` exactly like a full run.
+- `ISOTOOLS_NMD` stub creates the `nmd/` directory and files matching its output globs (`touch nmd/*` failed on stub runs).
+
+### Changed
+
+- `modules/xorf` bumped with the rename-output fix above (submodule commit `96af8dd`).
+- `subworkflows/polish/main.nf`: long lines wrapped, mixed indentation normalized; no functional changes.
+- Version bumped to `0.1.4` in the pipeline manifest.
+
+---
+
 ## [0.1.3] - 2026-08-17
 
 ### Added
