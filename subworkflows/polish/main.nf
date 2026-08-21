@@ -36,6 +36,7 @@ include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_NMD } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_XORF } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_TOGA } from '../../modules/custom/sort/main'
 include { XORF_RUN } from '../xorf/main'
 
 
@@ -88,7 +89,7 @@ workflow POLISH_TWOPASS {
         // replicated to one per reads element, because plain multi-channel
         // process inputs zip pairwise and a single annotation element would
         // truncate classify to one task.
-        ch_toga = hq
+        ch_toga_unsorted = hq
             .map { _meta, bed -> bed }
             .concat(annotation.map { _meta, bed -> bed })
             .collectFile(
@@ -97,6 +98,9 @@ workflow POLISH_TWOPASS {
                 sort: true
             )
             .map { bed -> [ [ id: bed.baseName ], bed ] }
+
+        SORT_BED_TOGA(ch_toga_unsorted)
+        ch_toga = SORT_BED_TOGA.out.sorted
 
         ch_toga_n = hq
             .map { meta, _bed -> meta }
@@ -153,6 +157,7 @@ workflow POLISH_TWOPASS {
         ch_versions = ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.versions
             .mix(ISOTOOLS_INTRON_RETENTION_TWOPASS.out.versions)
             .mix(STRIP_RETENTIONS_TWOPASS.out.versions)
+            .mix(SORT_BED_TOGA.out.versions)
             .mix(SORT_BED_TWOPASS.out.versions)
 
     emit:
