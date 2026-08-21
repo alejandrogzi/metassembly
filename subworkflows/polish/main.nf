@@ -315,7 +315,8 @@ workflow POLISH {
          // main.nf validates FULL_RUN, but FROM_POLISHING bypasses it and XORF can
          // still emit empty if all ORFs filtered — without this, POLISH_TWOPASS
          // silently yields empty or retention-only output.
-         ch_xorf_hq_for_twopass = ch_xorf_hq.ifEmpty { error "POLISH_TWOPASS requires XORF ORF predictions but ch_xorf_hq is empty. Ensure params.xorf_call_orfs=true and XORF produced output (check xorf filters / truncation / selenocysteine masking)." }
+         // Skip guard in stubMode where channels are intentionally empty.
+         ch_xorf_hq_for_twopass = workflow.stubRun ? ch_xorf_hq : ch_xorf_hq.ifEmpty { error "POLISH_TWOPASS requires XORF ORF predictions but ch_xorf_hq is empty. Ensure params.xorf_call_orfs=true and XORF produced output (check xorf filters / truncation / selenocysteine masking)." }
          POLISH_TWOPASS(
             ch_xorf_hq_for_twopass,
             STRIP_RETENTIONS.out.discard,
@@ -333,7 +334,7 @@ workflow POLISH {
          // ORF-only path (default: xorf=true, twopass=false) previously ignored
          // XORF and fed first-pass HQ to NMD. Now correctly route ORF predictions
          // to NMD/publish. Sort pre-NMD for determinism (mirrors twopass/flnc sorted).
-         ch_xorf_hq_for_nmd = ch_xorf_hq.ifEmpty { error "xorf_call_orfs=true but XORF produced no HQ BED (ch_xorf_hq empty). Check XORF filtering / truncation." }
+         ch_xorf_hq_for_nmd = workflow.stubRun ? ch_xorf_hq : ch_xorf_hq.ifEmpty { error "xorf_call_orfs=true but XORF produced no HQ BED (ch_xorf_hq empty). Check XORF filtering / truncation." }
          SORT_BED_XORF(ch_xorf_hq_for_nmd)
          ch_final_hq = SORT_BED_XORF.out.sorted
          ch_versions = ch_versions.mix(SORT_BED_XORF.out.versions)
@@ -342,7 +343,8 @@ workflow POLISH {
       }
 
       // Guard NMD input: fail fast instead of silently publishing nothing
-      ch_final_hq_guarded = ch_final_hq.ifEmpty { error "No HQ transcripts available for NMD (ch_final_hq empty). Check upstream filtering / XORF / twopass." }
+      // Skip in stubRun where dummy channels may be empty.
+      ch_final_hq_guarded = workflow.stubRun ? ch_final_hq : ch_final_hq.ifEmpty { error "No HQ transcripts available for NMD (ch_final_hq empty). Check upstream filtering / XORF / twopass." }
       ISOTOOLS_NMD(
         ch_final_hq_guarded
       )
