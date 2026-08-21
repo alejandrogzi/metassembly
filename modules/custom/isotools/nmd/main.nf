@@ -49,8 +49,11 @@ process ISOTOOLS_NMD {
     """
 
     stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch nmd/*
+    mkdir -p nmd
+    touch nmd/${prefix}.reads.bed
+    touch nmd/${prefix}.nmd.bed
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
