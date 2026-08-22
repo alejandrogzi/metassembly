@@ -337,10 +337,19 @@ workflow POLISH {
                           "Ensure params.xorf_call_orfs=true and XORF produced output " +
                           "(check xorf filters / truncation / selenocysteine masking)."
                 }
+            // POLISH_TWOPASS joins its inputs on the sample prefix (XORF ids are
+            // `<prefix>_flnc`, so `source_id` strips back to `<prefix>`), but the
+            // first-pass IIC and retention channels carry the metassembly basename.
+            // In `--from polish` that differs from `prefix` (e.g. `HLmyoMyot9A.clean`
+            // vs `HLmyoMyot9A`), so the joins collapse to zero records and the
+            // classify/retention/strip tasks are silently skipped. Normalize both to
+            // the prefix key here; no-op on the full path where basename == prefix.
             POLISH_TWOPASS(
                 ch_xorf_hq_for_twopass,
-                STRIP_RETENTIONS.out.discard,
-                IIC_PREDICT_SPLICEOSOME.out.iic,
+                STRIP_RETENTIONS.out.discard
+                    .map { meta, bed -> [ meta + [ id: "${prefix}.discard" ], bed ] },
+                IIC_PREDICT_SPLICEOSOME.out.iic
+                    .map { meta, iic -> [ meta + [ id: prefix ], iic ] },
                 ch_genome,
                 annotation,
                 ch_repeats,
