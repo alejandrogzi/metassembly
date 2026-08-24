@@ -61,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.6] - 2026-08-25
+
+### Fixed
+
+- XORF intermediate outputs are published again. The per-instance publish selectors for `09_polish/xorf/` and `09_polish/xorf_twopass_retentions/` anchored on the wrapper name alone, but xorf module processes carry an extra `:XORF:` workflow segment in their qualified names — the anchored patterns never matched and nothing was published. Selectors now include the segment, and the e2e golden asserts the published `09_polish/xorf/` files (line counts) so a regression fails `verify.py` instead of silently dropping outputs.
+
+### Changed
+
+- Version bumped to `0.1.6` in the pipeline manifest.
+
+---
+
 ## [0.1.5] - 2026-08-24
 
 ### Added
