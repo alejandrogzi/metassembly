@@ -46,13 +46,13 @@
         <br>
         <a href="https://nbisweden.github.io/workshop-RNAseq/2011/lab_assembly.html">metassembly</a> .
         <a href="https://github.com/hillerlab/xasm/blob/main/assets/pipeline/xasm.mermaid">pipeline</a> .
-        <a href="https://hillerlab.com/">us</a> 
+        <a href="https://hillerlab.com/">us</a>
     </samp>
   </p>
 
 </p>
 
---- 
+---
 
 All notable changes to xasm will be documented in this file.
 
