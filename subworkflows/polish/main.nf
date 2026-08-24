@@ -38,6 +38,7 @@ include { SORT_BED as SORT_BED_NMD } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_XORF } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TOGA } from '../../modules/custom/sort/main'
 include { XORF_RUN } from '../xorf/main'
+include { XORF_RUN as XORF_RUN_ON_TWOPASS_RETENTIONS } from '../xorf/main'
 
 
 /*
@@ -57,6 +58,8 @@ workflow POLISH_TWOPASS {
         splice_scores            // channel: [ meta, bigwig directory ]
 
     main:
+        ch_xorf_twopass_versions = Channel.empty()
+
         // XORF output ids embed the source transcript: meta.id =
         // "<prefix>_flnc@<chr>". POLISH names the ORF input `<prefix>_flnc`
         // and the subworkflow's groupKey appends `@<chr>`; the first-pass IIC
@@ -141,10 +144,33 @@ workflow POLISH_TWOPASS {
             'RETENTION'
         )
 
+        // After deciding which retentions to keep we need to predict
+        // ORFs for a second-round hard-filter.
+        ch_xorf_hq_twopass_retentions = Channel.empty()
+        if (params.xorf_call_orfs) {
+            XORF_RUN_ON_TWOPASS_RETENTIONS(
+                STRIP_RETENTIONS_TWOPASS.out.hq,
+                genome,
+                'xorf_twopass_retentions'
+            )
+            ch_xorf_twopass_versions = XORF_RUN_ON_TWOPASS_RETENTIONS.out.versions
+            // With selenocysteine masking the merged id is `<t>_flnc@<masked|UNMSK>`
+            // and which group wins the submodule's collect is order-dependent, so
+            // canonicalize to the deterministic `<t>_flnc` before it keys filenames.
+            // Upstream RENAME now emits only *.renamed.bed, so bed is a single file.
+            ch_xorf_hq_twopass_retentions = XORF_RUN_ON_TWOPASS_RETENTIONS.out.files.map { meta, bed, tsv ->
+                if (bed instanceof List) {
+                    error "XORF emitted List bed for ${meta.id}: ${bed} — expected single file " +
+                          "(check params.xorf_skip_joined_concat / rename module)"
+                }
+                [ meta + [ id: meta.id.tokenize('@')[0] ], bed ]
+            }
+        }
+
         // ORF HQ and its retention discards are disjoint. Mixing and
         // sorting also falls back naturally to HQ when there are no retentions.
         ch_merged_hq = hq
-            .concat(STRIP_RETENTIONS_TWOPASS.out.hq)
+            .concat(ch_xorf_hq_twopass_retentions)
             .map { meta, bed -> bed }
             .collectFile(
                 name: "${params.prefix ?: 'polish'}.twopass.bed",
@@ -159,6 +185,7 @@ workflow POLISH_TWOPASS {
             .mix(STRIP_RETENTIONS_TWOPASS.out.versions)
             .mix(SORT_BED_TOGA.out.versions)
             .mix(SORT_BED_TWOPASS.out.versions)
+            .mix(ch_xorf_twopass_versions)
 
     emit:
         hq          = SORT_BED_TWOPASS.out.sorted
@@ -305,7 +332,8 @@ workflow POLISH {
         if (params.xorf_call_orfs) {
             XORF_RUN(
                 ch_fl_hq_transcripts,
-                ch_genome
+                ch_genome,
+                'xorf'
             )
             // With selenocysteine masking the merged id is `<t>_flnc@<masked|UNMSK>`
             // and which group wins the submodule's collect is order-dependent, so

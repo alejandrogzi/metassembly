@@ -27,8 +27,11 @@ workflow XORF_RUN {
     take:
         regions                 // channel: [ meta, bed ] first-pass HQ transcripts
         sequence                // channel: [ meta, fasta ] genome (2bit ok)
+        out_subdir              // val: 09_polish subdir for the XORF_PIPELINE_INFO storeDir [default: 'xorf']
 
     main:
+        // Optional take arg: callers omitting it land on the first-pass location.
+        def xorf_out_dir = "${params.output_dir}/09_polish/${out_subdir ?: 'xorf'}"
         /*
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             SAMBA WEIGHTS
@@ -124,7 +127,7 @@ workflow XORF_RUN {
             regions.map { meta, f -> [ meta + [ chr: meta.id ], f ] },
             sequence.map { meta, fa -> fa },   // XORF takes a bare-file sequence channel
             ch_database,
-            "${params.output_dir}/09_polish/xorf",
+            xorf_out_dir,
             params.xorf_chunk_size ?: 20,
             ch_samba_weights,
             params.xorf_predict_keep_raw,

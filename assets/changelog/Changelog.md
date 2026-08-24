@@ -61,6 +61,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.5] - 2026-08-24
+
+### Added
+
+- Second-pass XORF ORF calling on rescued retention transcripts (`POLISH_TWOPASS`). After twopass re-review rescues retention discards, they now get their own XORF ORF round before merging into the twopass HQ set; the merged ORF predictions feed NMD and the final output.
+- XORF outputs from the twopass retention run publish under `09_polish/xorf_twopass_retentions/` (mirrored `00_concat`…`04_results` + `XORF_PIPELINE_INFO`), keeping `09_polish/xorf/` exclusively first-pass. `XORF_RUN` takes an optional output-subdir argument; first-pass callers are unchanged.
+- `--allow-missing` for twopass retention re-review (`ISOTOOLS_INTRON_RETENTION_TWOPASS`), warning instead of panicking when read/retention introns are missing from the reference.
+
+### Fixed
+
+- Twopass XORF step wiring: missing `XORF_RUN` alias import, `ch_genome` scoping error (used the `genome` take argument), and a `ch_versions` self-reference before initialization in `POLISH_TWOPASS`. The step previously aborted at runtime whenever `--do_twopass_polish --xorf_call_orfs` was set.
+- Twopass join keys now normalize to `prefix` in the `--from polish` checkpoint (`POLISH_TWOPASS` joins XORF hq ids `<prefix>_flnc` against first-pass IIC/retention channels keyed by the metassembly basename, which differs from `prefix` in checkpointed runs).
+
+### Changed
+
+- E2E golden task counts updated for the second XORF instance (`WGET_SAMBA_WEIGHTS`, `GENOMEMASK_SELENO` run once per instance).
+- Version bumped to `0.1.5` in the pipeline manifest.
+
+---
+
 ## [0.1.4] - 2026-08-21
 
 ### Fixed
