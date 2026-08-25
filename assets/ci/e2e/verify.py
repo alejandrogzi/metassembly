@@ -137,7 +137,15 @@ def verify_profile(profile: str) -> None:
             ]
         require(coordinates == sorted(coordinates), "final BED is not coordinate sorted")
         for relative, count in expected["polish_line_counts"].items():
-            path = output / relative
+            # '*' marks filenames that are order-dependent (xorf merged outputs are
+            # named after whichever seleno group wins the submodule collect); require
+            # exactly one match so the assertion stays strict.
+            if "*" in relative:
+                matches = list(output.glob(relative))
+                require(len(matches) == 1, f"polishing checkpoint glob ambiguous: {relative}: {matches}")
+                path = matches[0]
+            else:
+                path = output / relative
             require(path.is_file(), f"polishing checkpoint missing: {relative}")
             require(line_count(path) == count, f"polishing checkpoint changed: {relative}")
         for relative in expected.get("absent_paths", []):

@@ -46,18 +46,30 @@
         <br>
         <a href="https://nbisweden.github.io/workshop-RNAseq/2011/lab_assembly.html">metassembly</a> .
         <a href="https://github.com/hillerlab/xasm/blob/main/assets/pipeline/xasm.mermaid">pipeline</a> .
-        <a href="https://hillerlab.com/">us</a> 
+        <a href="https://hillerlab.com/">us</a>
     </samp>
   </p>
 
 </p>
 
---- 
+---
 
 All notable changes to xasm will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.1.6] - 2026-08-25
+
+### Fixed
+
+- XORF intermediate outputs are published again. The per-instance publish selectors for `09_polish/xorf/` and `09_polish/xorf_twopass_retentions/` anchored on the wrapper name alone, but xorf module processes carry an extra `:XORF:` workflow segment in their qualified names — the anchored patterns never matched and nothing was published. Selectors now include the segment, and the e2e golden asserts the published `09_polish/xorf/` files (line counts) so a regression fails `verify.py` instead of silently dropping outputs.
+
+### Changed
+
+- Version bumped to `0.1.6` in the pipeline manifest.
 
 ---
 
