@@ -61,6 +61,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.7] - 2026-08-26
+
+### Fixed
+
+- Twopass `SORT_BED_TWOPASS` no longer starts before XORF truncation stripping. The vendored XORF `files` emit was `CONCAT_RENAMED` even when `xorf_do_polishing` ran detach / iso-utr / strip, so the HQ merge (and then NMD) raced those steps and published unstripped ORFs. XORF `0.0.46` (`hillerlab/xorf#22`) emits stripped HQ as `files` plus `truncations` / `duplicates`; polish now waits on that emit.
+- Combined truncation discards from the first-pass XORF run and the twopass-retention XORF run are sorted and published under `10_final/truncations`. NMD is gated on that combine so it cannot start until both HQ merge and truncation union are ready.
+- `SORT_BED_NMD` now sorts `ISOTOOLS_NMD.out.nmd` (NMD-positive transcripts, `10_final/nmd`). The NMD-passing HQ continuation is sorted by `SORT_BED_FINAL` and remains the published `10_final` BED. A run with zero NMD hits simply skips `SORT_BED_NMD` (`nmd` is optional).
+
+### Changed
+
+- XORF gitlink bumped to `b0a6364` (`hillerlab/xorf#22`, merged to master).
+- Version bumped to `0.1.7` in the pipeline manifest.
+
+---
+
 ## [0.1.6] - 2026-08-25
 
 ### Fixed

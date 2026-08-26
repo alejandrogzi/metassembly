@@ -141,7 +141,9 @@ workflow XORF_RUN {
         )
 
     emit:
-        files    = XORF.out.files     // [ meta, bed, tsv ] renamed/merged ORF predictions
-        counts   = XORF.out.counts
-        versions = XORF.out.versions
+        files        = XORF.out.files        // [ meta, bed, tsv ] stripped HQ when xorf_do_polishing
+        truncations  = XORF.out.truncations  // [ meta, bed ] 3'UTR truncation discards
+        duplicates   = XORF.out.duplicates   // [ meta, bed ] #DU discards
+        counts       = XORF.out.counts
+        versions     = XORF.out.versions
 }

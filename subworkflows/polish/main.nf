@@ -34,7 +34,10 @@ include { SORT_BED as SORT_BED_FL_TRANSCRIPTS } from '../../modules/custom/sort/
 include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_FUSIONS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TWOPASS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_FINAL } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_NMD } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_TRUNCATIONS } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_TRUNCATIONS_XORF } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_XORF } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TOGA } from '../../modules/custom/sort/main'
 include { XORF_RUN } from '../xorf/main'
@@ -49,7 +52,8 @@ include { XORF_RUN as XORF_RUN_ON_TWOPASS_RETENTIONS } from '../xorf/main'
 
 workflow POLISH_TWOPASS {
     take:
-        hq                       // channel: [ meta, bed ] XORF ORF predictions (BED12)
+        hq                       // channel: [ meta, bed ] first-pass XORF HQ (post-strip)
+        truncations              // channel: [ meta, bed ] first-pass XORF truncation discards
         retentions               // channel: [ meta, bed ] first-pass retention discards
         intron_iic               // channel: [ meta, iic ] first-pass intronIC evidence
         genome                   // channel: [ meta, fasta ]
@@ -147,6 +151,7 @@ workflow POLISH_TWOPASS {
         // After deciding which retentions to keep we need to predict
         // ORFs for a second-round hard-filter.
         ch_xorf_hq_twopass_retentions = Channel.empty()
+        ch_xorf_trunc_twopass = Channel.empty()
         if (params.xorf_call_orfs) {
             XORF_RUN_ON_TWOPASS_RETENTIONS(
                 STRIP_RETENTIONS_TWOPASS.out.hq,
@@ -158,6 +163,8 @@ workflow POLISH_TWOPASS {
             // and which group wins the submodule's collect is order-dependent, so
             // canonicalize to the deterministic `<t>_flnc` before it keys filenames.
             // Upstream RENAME now emits only *.renamed.bed, so bed is a single file.
+            // XORF.out.files is post-strip HQ (do_polishing default), so this
+            // merge waits on STRIP_TRUNCATIONS rather than CONCAT_RENAMED.
             ch_xorf_hq_twopass_retentions = XORF_RUN_ON_TWOPASS_RETENTIONS.out.files.map { meta, bed, tsv ->
                 if (bed instanceof List) {
                     error "XORF emitted List bed for ${meta.id}: ${bed} — expected single file " +
@@ -165,6 +172,7 @@ workflow POLISH_TWOPASS {
                 }
                 [ meta + [ id: meta.id.tokenize('@')[0] ], bed ]
             }
+            ch_xorf_trunc_twopass = XORF_RUN_ON_TWOPASS_RETENTIONS.out.truncations
         }
 
         // ORF HQ and its retention discards are disjoint. Mixing and
@@ -180,18 +188,38 @@ workflow POLISH_TWOPASS {
 
         SORT_BED_TWOPASS(ch_merged_hq)
 
+        ch_merged_truncations = truncations
+            .concat(ch_xorf_trunc_twopass)
+            .map { _meta, bed -> bed }
+            .collectFile(
+                name: "${params.prefix ?: 'polish'}.truncations.bed",
+                newLine: false
+            )
+            .map { bed -> [ [ id: bed.baseName ], bed ] }
+
+        SORT_BED_TRUNCATIONS(ch_merged_truncations)
+
+        // NMD must not start until both the merged HQ and the combined
+        // truncation discards are ready. ifEmpty covers the no-truncation case
+        // (collectFile emits nothing; SORT_BED_TRUNCATIONS never runs).
+        ch_hq_ready = SORT_BED_TWOPASS.out.sorted
+            .combine(SORT_BED_TRUNCATIONS.out.sorted.ifEmpty([[:], []]))
+            .map { meta, bed, _tmeta, _tbed -> [meta, bed] }
+
         ch_versions = ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.versions
             .mix(ISOTOOLS_INTRON_RETENTION_TWOPASS.out.versions)
             .mix(STRIP_RETENTIONS_TWOPASS.out.versions)
             .mix(SORT_BED_TOGA.out.versions)
             .mix(SORT_BED_TWOPASS.out.versions)
+            .mix(SORT_BED_TRUNCATIONS.out.versions)
             .mix(ch_xorf_twopass_versions)
 
     emit:
-        hq          = SORT_BED_TWOPASS.out.sorted
-        retentions  = STRIP_RETENTIONS_TWOPASS.out.discard
-        introns     = ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.tsv
-        versions    = ch_versions
+        hq           = ch_hq_ready
+        truncations  = SORT_BED_TRUNCATIONS.out.sorted
+        retentions   = STRIP_RETENTIONS_TWOPASS.out.discard
+        introns      = ISOTOOLS_CLASSIFY_INTRON_TWOPASS.out.tsv
+        versions     = ch_versions
 }
 
 /*
@@ -350,6 +378,7 @@ workflow POLISH {
         }
 
         ch_final_hq = Channel.empty()
+        ch_final_truncations = Channel.empty()
         ch_final_retentions = STRIP_RETENTIONS.out.discard
 
         if (do_twopass_polish) {
@@ -374,6 +403,7 @@ workflow POLISH {
             // the prefix key here; no-op on the full path where basename == prefix.
             POLISH_TWOPASS(
                 ch_xorf_hq_for_twopass,
+                XORF_RUN.out.truncations,
                 STRIP_RETENTIONS.out.discard
                     .map { meta, bed -> [ meta + [ id: "${prefix}.discard" ], bed ] },
                 IIC_PREDICT_SPLICEOSOME.out.iic
@@ -385,6 +415,7 @@ workflow POLISH {
             )
 
             ch_final_hq = POLISH_TWOPASS.out.hq
+            ch_final_truncations = POLISH_TWOPASS.out.truncations
             ch_final_retentions = POLISH_TWOPASS.out.retentions
             ch_versions = ch_versions.mix(POLISH_TWOPASS.out.versions)
         } else if (params.xorf_call_orfs) {
@@ -398,8 +429,12 @@ workflow POLISH {
                           "Check XORF filtering / truncation."
                 }
             SORT_BED_XORF(ch_xorf_hq_for_nmd)
+            SORT_BED_TRUNCATIONS_XORF(XORF_RUN.out.truncations)
             ch_final_hq = SORT_BED_XORF.out.sorted
-            ch_versions = ch_versions.mix(SORT_BED_XORF.out.versions)
+            ch_final_truncations = SORT_BED_TRUNCATIONS_XORF.out.sorted
+            ch_versions = ch_versions
+                .mix(SORT_BED_XORF.out.versions)
+                .mix(SORT_BED_TRUNCATIONS_XORF.out.versions)
         } else {
             ch_final_hq = ch_fl_hq_transcripts
         }
@@ -412,21 +447,28 @@ workflow POLISH {
                 error "No HQ transcripts available for NMD (ch_final_hq empty). " +
                       "Check upstream filtering / XORF / twopass."
             }
+
         ISOTOOLS_NMD(
             ch_final_hq_guarded
         )
-        // iso-nmd does not preserve coordinate order; re-sort so the published
-        // final BED stays sorted (bedToBigBed requires it) and keeps the
-        // canonical `<prefix>_twopass_clean.sorted.bed` name.
-        SORT_BED_NMD(ISOTOOLS_NMD.out.reads)
+
+        // iso-nmd splits the HQ set: `reads` is the NMD-passing continuation
+        // (published as 10_final HQ), `nmd` is the NMD-positive discard
+        // (published under 10_final/nmd). Neither glob preserves coordinate
+        // order; bedToBigBed requires sorted input. `nmd` is optional — a run
+        // with zero NMD hits never fires SORT_BED_NMD.
+        SORT_BED_FINAL(ISOTOOLS_NMD.out.reads)
+        SORT_BED_NMD(ISOTOOLS_NMD.out.nmd)
         ch_versions = ch_versions
             .mix(ISOTOOLS_NMD.out.versions)
+            .mix(SORT_BED_FINAL.out.versions)
             .mix(SORT_BED_NMD.out.versions)
-        ch_final_hq = SORT_BED_NMD.out.sorted
+        ch_final_hq = SORT_BED_FINAL.out.sorted
         PUBLISH_FINAL_TRANSCRIPTS(ch_final_hq)
 
     emit:
         hq             = ch_final_hq
+        truncations    = ch_final_truncations
         retentions     = ch_final_retentions
         strong_rts     = STRIP_STRONG_RTS.out.hq
         weak_rts       = STRIP_WEAK_RTS.out.hq
