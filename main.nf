@@ -105,6 +105,7 @@ include { SORT_BED } from './modules/custom/sort/main'
 include { BEDTOBIGBED } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_HQ } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_RETENTION } from './modules/custom/bigtools/bedtobigbed/main'
+include { BEDTOBIGBED as BEDTOBIGBED_TRUNCATIONS } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_STRONG_RTS } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_WEAK_RTS } from './modules/custom/bigtools/bedtobigbed/main'
 include { BEDTOBIGBED as BEDTOBIGBED_ARTIFACTS } from './modules/custom/bigtools/bedtobigbed/main'
@@ -279,6 +280,11 @@ workflow FULL_RUN {
             METASSEMBLE.out.chrom_sizes,
             ch_autosql
         )
+        BEDTOBIGBED_TRUNCATIONS(
+            POLISH.out.truncations,
+            METASSEMBLE.out.chrom_sizes,
+            ch_autosql
+        )
         BEDTOBIGBED_STRONG_RTS(
             POLISH.out.strong_rts,
             METASSEMBLE.out.chrom_sizes,
@@ -396,6 +402,11 @@ workflow FROM_POLISHING {
         )
         BEDTOBIGBED_RETENTION(
             POLISH.out.retentions,
+            ch_chrom_sizes,
+            ch_autosql
+        )
+        BEDTOBIGBED_TRUNCATIONS(
+            POLISH.out.truncations,
             ch_chrom_sizes,
             ch_autosql
         )

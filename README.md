@@ -165,6 +165,8 @@ results/
 │   ├── iic/              *tsv
 │   └── classify/         *tsv
 ├── 10_final/             *bed  <- --from bigbed checkpoint
+│   ├── nmd/              *bed  NMD-positive transcripts
+│   └── truncations/      *bed  XORF 3′UTR truncation discards (both XORF runs, if twopass)
 ├── 11_bbs/               *bb
 └── pipeline_info/    timeline, trace, DAG
 ```
