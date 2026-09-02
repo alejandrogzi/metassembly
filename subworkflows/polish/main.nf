@@ -29,6 +29,7 @@ include { STRIP_OCCURRENCES as STRIP_STRONG_RTS } from '../../modules/custom/str
 include { STRIP_OCCURRENCES as STRIP_WEAK_RTS } from '../../modules/custom/strip/main'
 include { STRIP_OCCURRENCES as STRIP_ARTIFACTS } from '../../modules/custom/strip/main'
 include { PUBLISH as PUBLISH_FINAL_TRANSCRIPTS } from '../../modules/custom/publish/main'
+include { RENAME_FINAL_TRANSCRIPTS } from '../../modules/custom/rename/final/main'
 
 include { SORT_BED as SORT_BED_FL_TRANSCRIPTS } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_SCRAPS } from '../../modules/custom/sort/main'
@@ -457,14 +458,22 @@ workflow POLISH {
         // (published under 10_final/nmd). Neither glob preserves coordinate
         // order; bedToBigBed requires sorted input. `nmd` is optional — a run
         // with zero NMD hits never fires SORT_BED_NMD.
-        SORT_BED_FINAL(ISOTOOLS_NMD.out.reads)
         SORT_BED_NMD(ISOTOOLS_NMD.out.nmd)
+
+        // An additional renaming step is required to override UNKNOWN tags
+        // due to blasting low-confidence ORFs. We perform CDS overlap and
+        // derive names from the component. All-UNKNOWN components remain
+        // the same.
+        RENAME_FINAL_TRANSCRIPTS(ISOTOOLS_NMD.out.reads)
+        SORT_BED_FINAL(RENAME_FINAL_TRANSCRIPTS.out.reads)
+        ch_final_hq = SORT_BED_FINAL.out.sorted
+        PUBLISH_FINAL_TRANSCRIPTS(ch_final_hq)
+
         ch_versions = ch_versions
             .mix(ISOTOOLS_NMD.out.versions)
             .mix(SORT_BED_FINAL.out.versions)
             .mix(SORT_BED_NMD.out.versions)
-        ch_final_hq = SORT_BED_FINAL.out.sorted
-        PUBLISH_FINAL_TRANSCRIPTS(ch_final_hq)
+            .mix(RENAME_FINAL_TRANSCRIPTS.out.versions)
 
     emit:
         hq             = ch_final_hq

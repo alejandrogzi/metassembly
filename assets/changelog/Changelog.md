@@ -61,6 +61,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.8] - 2026-09-02
+
+### Added
+
+- `RENAME_FINAL_TRANSCRIPTS` resolves `@UNKNOWN` protein tags left by low-confidence XORF BLAST hits before publishing. Transcripts are packed into CDS-overlap components with `py-packbed` (`ghcr.io/alejandrogzi/py-packbed`, container-only — the wheel is not on bioconda); within a component carrying `UNKNOWN` tags, every `UNKNOWN` adopts the protein name supported by the most members (ties: alphabetical), all-`UNKNOWN` and `UNKNOWN`-free components are flushed unchanged, and untagged names never vote. The record count is preserved — only names change — and a `10_final/*.renamed.tsv` map (one `old<TAB>new` pair per changed transcript, so `wc -l` is the change count) is published alongside the final BED. The embedded script self-checks every branch via `--selftest` before each run; e2e goldens assert the new task and published map for `test`, `test-sb`, and `test-tm`.
+- The `py-packbed` image entrypoints `python3`, which would swallow Nextflow's `/bin/bash -ue` wrapper, so the module passes `--entrypoint /usr/bin/env` for docker/podman engines. Upstream note: dropping `ENTRYPOINT ["python3"]` from `py-packbed.Dockerfile` would make the image Nextflow-friendly out of the box.
+
+### Changed
+
+- Version bumped to `0.1.8` in the pipeline manifest.
+
+---
+
 ## [0.1.7] - 2026-08-26
 
 ### Fixed
