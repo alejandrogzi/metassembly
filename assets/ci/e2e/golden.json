@@ -42,6 +42,12 @@
       "tasks": ["BQTOOLS_ENCODE_INPUT", "BQC", "DEACON_FILTER", "RUSTAR_ALIGN_1PASS", "RUSTAR_ALIGN_2PASS", "SAMTOOLS_INDEX", "ALETSCH", "REMOVE_BAMS"],
       "forbidden_tasks": ["FASTP", "STAR_ALIGN_1PASS", "STAR_ALIGN_2PASS"]
     },
+    "test-annevo": {
+      "output": "test_results/annevo",
+      "smoke": true,
+      "tasks": ["GXF2BED_ANNEVO", "SORT_BED_REFERENCE", "ISOTOOLS_FUSION", "ISOTOOLS_ORPHAN", "ISOTOOLS_CLASSIFY_INTRON", "ISOTOOLS_NMD"],
+      "forbidden_tasks": ["ANNEVO_PREDICTION", "ANNEVO_DECODING", "ANNEVO_GATHER", "FXSPLIT"]
+    },
     "test-bqc-star": {
       "output": "test_results/bqc-star",
       "metassembly": "06_beaver/test.gtf",

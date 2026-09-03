@@ -61,6 +61,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.9] - 2026-09-04
+
+### Added
+
+- Optional ANNEVO annotation as a second gene model for polishing. `--annevo_annotation <file>` takes a ready-made ANNEVO GFF3 (or GTF/GFF/BED); `--annevo_predict` runs ANNEVO on the genome instead (requires `--annevo_lineage`, ignored when a file is given). The ANNEVO subworkflow, its prediction/decoding modules, and `FXSPLIT` are vendored from `hillerlab/core@9a407a0`.
+- `POLISH` merges the ANNEVO BED12 with the reference annotation into a single coordinate-sorted `<prefix>.reference.sorted.bed` and feeds that one file to `iso-orphan` (`--ref`), `iso-fusion` (`--ref`), `iso-classify` (`--toga`) and the two-pass `--toga` union, so an intron supported by either source stays categorized. The merge is guarded by `--annevo_annotation`/`--annevo_predict`: runs without ANNEVO hand the annotation channel through untouched and stay bit-identical to before.
+- `test-annevo` e2e profile: reuses the `test` profile with `--annevo_annotation <fixture>` and a separate output dir, and asserts the conversion + merge tasks ran while prediction did not.
+
+### Changed
+
+- Version bumped to `0.1.9` in the pipeline manifest.
+
+### Notes
+
+- The ANNEVO branch is container-only: neither ANNEVO nor `FXSPLIT` ships a conda environment, so `-profile conda` cannot run `--annevo_predict`.
+
+---
+
 ## [0.1.8] - 2026-09-02
 
 ### Added

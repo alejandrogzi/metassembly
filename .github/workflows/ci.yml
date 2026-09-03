@@ -47,3 +47,7 @@ jobs:
       - name: Run bqc + STAR end-to-end number check
         timeout-minutes: 30
         run: assets/ci/e2e/run.sh test-bqc-star
+
+      - name: Run ANNEVO annotation end-to-end smoke test
+        timeout-minutes: 30
+        run: assets/ci/e2e/run.sh test-annevo

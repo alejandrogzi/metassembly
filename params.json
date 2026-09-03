@@ -56,6 +56,14 @@
     "//5a": "── Polishing [optional] ──────────────────────────────────",
     "do_twopass_polish": false,
 
+    "//5aa": "── ANNEVO annotation [optional] ──────────────────────────────────────────",
+    "annevo_annotation":   null,
+    "annevo_predict":     false,
+    "annevo_lineage":     null,
+    "annevo_scatter":     "chromosome",
+    "annevo_bins":        8,
+    "annevo_overlap_pred": null,
+
     "//5b": "── ORF calling [optional] ────────────────────────────────────────────────",
     "xorf_call_orfs":                         true,
     "xorf_selenocysteine_sites":              null,

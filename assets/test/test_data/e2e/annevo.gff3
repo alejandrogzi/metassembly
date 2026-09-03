@@ -1,0 +1,26 @@
+##gff-version 3
+# This output was generated with ANNEVO (ab initio gene prediction).
+# ANNEVO is an ab initio gene structure predictor for eukaryotic genomes.
+# Citation: ANNEVO, https://github.com/hillerlab/annevo
+#
+# End-to-end fixture: two ANNEVO genes that overlap the annotated test loci on
+# chrTestA/chrTestB with deliberately shifted exon boundaries, so the merged
+# reference POLISH builds carries introns the reference annotation does not.
+# ----- prediction on sequence number 1 (name = chrTestA) -----
+chrTestA	ANNEVO	gene	400	5400	0.72	+	.	ID=annevo_gene_A
+chrTestA	ANNEVO	mRNA	400	5400	0.72	+	.	ID=annevo_tx_A;Parent=annevo_gene_A
+chrTestA	ANNEVO	exon	400	750	.	+	.	ID=annevo_tx_A.exon1;Parent=annevo_tx_A
+chrTestA	ANNEVO	CDS	400	750	.	+	0	Parent=annevo_tx_A
+chrTestA	ANNEVO	exon	1000	2350	.	+	.	ID=annevo_tx_A.exon2;Parent=annevo_tx_A
+chrTestA	ANNEVO	CDS	1000	2350	.	+	1	Parent=annevo_tx_A
+chrTestA	ANNEVO	exon	2810	5400	.	+	.	ID=annevo_tx_A.exon3;Parent=annevo_tx_A
+chrTestA	ANNEVO	CDS	2810	5400	.	+	0	Parent=annevo_tx_A
+# ----- prediction on sequence number 2 (name = chrTestB) -----
+chrTestB	ANNEVO	gene	450	3025	0.61	+	.	ID=annevo_gene_B
+chrTestB	ANNEVO	mRNA	450	3025	0.61	+	.	ID=annevo_tx_B;Parent=annevo_gene_B
+chrTestB	ANNEVO	exon	450	708	.	+	.	ID=annevo_tx_B.exon1;Parent=annevo_tx_B
+chrTestB	ANNEVO	CDS	450	708	.	+	0	Parent=annevo_tx_B
+chrTestB	ANNEVO	exon	1400	1600	.	+	.	ID=annevo_tx_B.exon2;Parent=annevo_tx_B
+chrTestB	ANNEVO	CDS	1400	1600	.	+	1	Parent=annevo_tx_B
+chrTestB	ANNEVO	exon	2640	3025	.	+	.	ID=annevo_tx_B.exon3;Parent=annevo_tx_B
+chrTestB	ANNEVO	CDS	2640	3025	.	+	0	Parent=annevo_tx_B
