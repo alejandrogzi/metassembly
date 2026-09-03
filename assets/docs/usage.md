@@ -141,6 +141,8 @@ separate directories under `test_results/`.
 | `--annotation` | `.gtf`, `.gff`, `.bed`, or `.gz` | **yes** | The reference annotation. It guides the STAR index, iso-orphan detection, and TransMeta. |
 | `--splice_scores_dir` | directory of SpliceAI `.bw` tracks | recommended | Pre-computed SpliceAI scores (donor/acceptor, plus/minus). The polish step uses them to tell real splice sites from artifacts. You can skip it, but the polish step is much weaker without it. |
 | `--repeats` | `.bed` / `.gff` / `.gtf` | recommended | Repeats annotation, used to mask repeat-derived artifacts during intron classification. |
+| `--annevo_annotation` | ANNEVO `.gff3` (or GTF/GFF/BED) | no | A second, *ab initio* gene model, merged with `--annotation` for polishing. See [4.10a](#410a-annevo-annotation-optional). |
+| `--annevo_predict` | flag | no | Run ANNEVO on the genome instead of supplying a file. Requires `--annevo_lineage`. |
 | `--output_dir` | path | **yes** (defaults to `./results`) | Where results go. |
 | `--prefix` | string | no | Prefix for output file names (e.g. `hg38` → `hg38.gtf`). If unset, `metassembly` is used. |
 
@@ -382,6 +384,38 @@ published separately so nothing is silently lost.
 | `isotools_classify_maxent_min_ss_signal` | `1.5` | Minimum MaxEnt score for a splice site to count as real. |
 | `do_twopass_polish` | `false` | Re-review the transcripts that were discarded for **intron retention** in the first pass, this time ignoring UTR retentions (which are often real). The second-pass `--toga` reference is the union of the reference annotation and the XORF ORF models. Rescued transcripts get their own XORF round; those HQ ORFs are merged with the first-pass HQ, truncation discards from both XORF runs are unioned (`10_final/truncations`), then NMD runs on the combined HQ. Costs a second classification round plus a second XORF. |
 
+### 4.10a ANNEVO annotation (optional)
+
+By default the reference annotation (`--annotation`) is the only gene model
+xasm compares against during polishing. With ANNEVO you can add a second,
+*ab initio* gene model: POLISH merges it with the reference annotation into one
+coordinate-sorted BED and feeds that single file to `iso-orphan` (`--ref`),
+`iso-fusion` (`--ref`), `iso-classify` (`--toga`) and the two-pass `--toga`
+union. Introns supported by either source stay categorized.
+
+Two ways to supply it:
+
+- `--annevo_annotation FILE` — an ANNEVO GFF3 (or any GTF/GFF/BED) you already
+  have. Converted to BED12 with `gxf2bed`.
+- `--annevo_predict` — run ANNEVO on the genome and use its output. Requires
+  `--annevo_lineage`. Ignored when `--annevo_annotation` is given. ANNEVO needs
+  a container profile (`docker`/`apptainer`/`singularity`); it is not available
+  with `-profile conda`.
+
+| Parameter | Default | What it does |
+|-----------|---------|--------------|
+| `annevo_annotation` | `null` | Precomputed ANNEVO annotation (`.bed`/`.gtf`/`.gff`/`.gff3`, gzipped input is not supported). Wins over `annevo_predict`. |
+| `annevo_predict` | `false` | Run ANNEVO on the genome and use the prediction as second annotation. |
+| `annevo_lineage` | `null` | ANNEVO lineage: `Mammalia`, `Insecta`, `Aves`, `Actinopteri`, `Magnoliopsida`, `Fungi`. **Required** with `annevo_predict`. |
+| `annevo_scatter` | `chromosome` | How the genome is split: `none`, `chromosome` (one task per sequence), `weighted` (length-balanced bins). |
+| `annevo_bins` | `8` | Number of bins for `--annevo_scatter weighted`. |
+| `annevo_overlap_pred` | `null` | Allow overlapping gene predictions. Defaults to lineage-specific ANNEVO behaviour (`Mammalia`, `Actinopteri`: on). |
+
+> ANNEVO output is published under `08_annevo`: the `*.annevo.gff3` (only with
+> `--annevo_predict`) plus the BED12 POLISH merges into the reference (passthrough
+> for `.bed` input). The merged reference itself lives in the work directory
+> (`<prefix>.reference.sorted.bed`).
+
 ### 4.11 BigBed conversion
 
 The final transcripts are published as BED files. If you want UCSC
@@ -527,6 +561,8 @@ results/
 │                              concatenated metassembly (<prefix>.gtf)
 ├── 07_remove_dirt/            cleaned metassembly (*gtf)
 ├── 08_gxf2bed/                BED versions of the annotation + assembly (*bed)
+├── 08_annevo/                 ANNEVO annotation (*annevo.gff3 + *.bed),
+│                              only when an ANNEVO source is given
 ├── 09_polish/
 │   ├── fusions/               fusion candidate transcripts (*bed)
 │   ├── orphans/               iso-orphan classification (*bed, *tsv)

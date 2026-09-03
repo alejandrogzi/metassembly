@@ -58,6 +58,19 @@ if (params.help) {
         --xorf_call_orfs      BOOLEAN   Run XORF ORF calling on first-pass HQ transcripts [default: false]
         --xorf_custom_database PATH     Custom protein database for ORF calling (.dmnd/.dmnd.gz replaces the default; .fa/.fasta appended to SwissProt) [default: null; rest of XORF options in params.json]
 
+    Optional parameters (ANNEVO annotation):
+        --annevo_annotation   PATH      Precomputed ANNEVO annotation (.bed/.gtf/.gff/.gff3); merged with
+                                        the reference annotation and used by iso-orphan, iso-fusion and
+                                        iso-classify [default: null]
+        --annevo_predict      BOOLEAN   Run ANNEVO on the genome and use its output as second annotation.
+                                        Ignored when --annevo_annotation is given [default: false]
+        --annevo_lineage      STRING    ANNEVO lineage [options: Mammalia, Insecta, Aves, Actinopteri,
+                                        Magnoliopsida, Fungi] [required with --annevo_predict]
+        --annevo_scatter      STRING    ANNEVO scatter mode [options: none, chromosome, weighted]
+                                        [default: chromosome]
+        --annevo_bins         INT       Number of bins for --annevo_scatter weighted [default: 8]
+        --annevo_overlap_pred BOOLEAN   Allow overlapping gene predictions [default: lineage-specific]
+
     Optional parameters (CBQ reads):
         --aligner                          STRING    Aligner [options: STAR, ruSTAR] [default: STAR]
                                                      STAR reads fastq only (CBQ is decoded after deacon);
@@ -93,6 +106,7 @@ if (params.help) {
 
 include { METASSEMBLE } from './subworkflows/metassembly/main'
 include { POLISH } from './subworkflows/polish/main'
+include { ANNEVO_ANNOTATION } from './subworkflows/annevo/main'
 include { EMAIL_RESULTS } from './modules/custom/email/main'
 include { TWOBIT_TO_FA } from './modules/custom/ucsc/twobittofa/main'
 include { CHROMSIZE } from './modules/custom/chromsize/main'
@@ -117,6 +131,29 @@ include { BEDTOBIGBED as BEDTOBIGBED_SCRAPS } from './modules/custom/bigtools/be
     VALIDATION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+
+//
+// ANNEVO annotation options. Shared by every entry point that reaches POLISH.
+//
+def validateAnnevo() {
+    def errors = []
+    def lineages = ['Mammalia', 'Insecta', 'Aves', 'Actinopteri', 'Magnoliopsida', 'Fungi']
+
+    if (params.annevo_predict && !params.annevo_lineage) {
+        errors << "  --annevo_predict requires --annevo_lineage [options: ${lineages.join(', ')}]"
+    }
+
+    if (params.annevo_annotation) {
+        def source = file(params.annevo_annotation)
+        if (!source.exists()) {
+            errors << "  --annevo_annotation '${params.annevo_annotation}' does not exist"
+        } else if (!(source.name ==~ /.*\.(bed|gtf|gff|gff3)$/)) {
+            errors << "  --annevo_annotation must be .bed/.gtf/.gff/.gff3 (gzip is not supported)"
+        }
+    }
+
+    return errors
+}
 
 def validateRun() {
     def errors = []
@@ -160,6 +197,8 @@ def validateRun() {
         }
     }
 
+    errors += validateAnnevo()
+
     if (errors) {
         log.error "Parameter validation failed:\n${errors.join('\n')}"
         System.exit(1)
@@ -175,6 +214,8 @@ def validateFromPolishing() {
     if (params.do_twopass_polish && !params.xorf_call_orfs) {
         errors << "  --do_twopass_polish requires --xorf_call_orfs true (twopass needs ORF calls from XORF)"
     }
+
+    errors += validateAnnevo()
 
     if (errors) {
         log.error "Parameter validation failed:\n${errors.join('\n')}"
@@ -232,6 +273,7 @@ workflow FULL_RUN {
       Input     : ${params.input_dir}
       Genome    : ${params.genome}
       Annotation: ${params.annotation}
+      ANNEVO    : ${params.annevo_annotation ?: (params.annevo_predict ? "predict (${params.annevo_lineage})" : 'off')}
       Outdir    : ${params.output_dir}
       Prefix    : ${params.prefix}
       Profile   : ${workflow.profile}
@@ -256,10 +298,15 @@ workflow FULL_RUN {
     )
 
     if (!params.skip_assembly) {
+        // NOTE: METASSEMBLE.out.genome is emitted as soon as the 2bit/gz conversion
+        // finishes, so ANNEVO runs in parallel with alignment + assembly.
+        ANNEVO_ANNOTATION(METASSEMBLE.out.genome)
+
         POLISH (
             METASSEMBLE.out.metassembly,
             METASSEMBLE.out.genome,
             METASSEMBLE.out.annotation_bed,
+            ANNEVO_ANNOTATION.out.bed,
             params.repeats,
             params.splice_scores_dir,
             params.do_twopass_polish,
@@ -381,11 +428,14 @@ workflow FROM_POLISHING {
       ch_bed = Channel.of([[], []])
     }
 
+    ANNEVO_ANNOTATION(ch_fasta)
+
     POLISH (
         Channel.fromPath(params.polish_path, checkIfExists: true)
             .map { it -> [ [ id: it.baseName ], it ] },
         ch_fasta,
         ch_bed,
+        ANNEVO_ANNOTATION.out.bed,
         params.repeats,
         params.splice_scores_dir,
         params.do_twopass_polish,
@@ -468,6 +518,10 @@ workflow FROM_BIGBED {
 */
 
 workflow XASM {
+    if (params.annevo_annotation && params.annevo_predict) {
+        log.warn "--annevo_annotation is set — ignoring --annevo_predict"
+    }
+
     if (params.from == "polish") {
         // ── Checkpoint: start from polishing step (skip metassembly) ─────────────────────
         log.info "Resuming from ${params.from} checkpoint — skipping meta-assembly"

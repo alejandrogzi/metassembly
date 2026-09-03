@@ -41,6 +41,7 @@ include { SORT_BED as SORT_BED_TRUNCATIONS } from '../../modules/custom/sort/mai
 include { SORT_BED as SORT_BED_TRUNCATIONS_XORF } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_XORF } from '../../modules/custom/sort/main'
 include { SORT_BED as SORT_BED_TOGA } from '../../modules/custom/sort/main'
+include { SORT_BED as SORT_BED_REFERENCE } from '../../modules/custom/sort/main'
 include { XORF_RUN } from '../xorf/main'
 include { XORF_RUN as XORF_RUN_ON_TWOPASS_RETENTIONS } from '../xorf/main'
 
@@ -233,7 +234,8 @@ workflow POLISH {
     take:
         metassembly               // channel: [ meta, gtf/bed ] 
         genome                    // channel: [ fasta ]
-        annotation                // channel: [ meta, gtf ]
+        annotation                // channel: [ meta, bed ]
+        annevo                    // channel: [ bed ] ANNEVO annotation, 0 or 1 element
         repeats                   // path: /path/to/repeats.{bed/gff/gtf}
         splice_scores_dir         // path: /path/to/splice/scores/dir
         do_twopass_polish         // val: boolean
@@ -242,6 +244,27 @@ workflow POLISH {
     main:
         ch_versions = Channel.empty()
         ch_genome = genome.map { genome -> [ [id:genome.baseName], genome ] }
+
+        // INFO: every iso-* consumer below reads ONE reference annotation. When ANNEVO
+        // provides a second one, both are collapsed into a single coordinate-sorted
+        // bed here so the modules keep staging a single --toga/--ref path.
+        // ponytail: guarded so runs without ANNEVO stay bit-identical to before.
+        if (params.annevo_annotation || params.annevo_predict) {
+            ch_reference_unsorted = annotation
+                .map { _meta, bed -> bed }
+                .concat(annevo)
+                .collectFile(
+                    name: "${prefix ?: 'polish'}.reference.bed",
+                    newLine: false
+                )
+                .map { bed -> [ [ id: bed.baseName ], bed ] }
+
+            SORT_BED_REFERENCE(ch_reference_unsorted)
+            ch_reference = SORT_BED_REFERENCE.out.sorted
+            ch_versions = ch_versions.mix(SORT_BED_REFERENCE.out.versions)
+        } else {
+            ch_reference = annotation
+        }
 
         ch_metassembly = metassembly.branch { meta, f ->
             gtf: f.name.endsWith('.gtf')
@@ -256,7 +279,7 @@ workflow POLISH {
 
         ISOTOOLS_FUSION(
             ch_cleaned_transcripts,
-            annotation
+            ch_reference
         )
 
         ch_splice_scores = splice_scores_dir ?
@@ -269,7 +292,7 @@ workflow POLISH {
         if (annotation) {
             ISOTOOLS_ORPHAN(
                 ISOTOOLS_FUSION.out.pass,
-                annotation,
+                ch_reference,
                 ch_splice_scores
             )
 
@@ -319,7 +342,7 @@ workflow POLISH {
         ISOTOOLS_CLASSIFY_INTRON(
           ch_classify_inputs,
           ch_genome,
-          annotation,
+          ch_reference,
           ch_repeats,
           ch_splice_scores
         )
@@ -410,7 +433,7 @@ workflow POLISH {
                 IIC_PREDICT_SPLICEOSOME.out.iic
                     .map { meta, iic -> [ meta + [ id: prefix ], iic ] },
                 ch_genome,
-                annotation,
+                ch_reference,
                 ch_repeats,
                 ch_splice_scores
             )
