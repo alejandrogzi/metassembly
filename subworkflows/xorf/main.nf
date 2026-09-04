@@ -16,6 +16,7 @@ include { UNTAR } from '../../modules/xorf/src/modules/untar/main.nf'
 include { GUNZIP as GUNZIP_DATABASE } from '../../modules/xorf/src/modules/gunzip/main.nf'
 include { FASTA_MERGE } from '../../modules/xorf/src/modules/diamond/merge/main.nf'
 include { DIAMOND_MAKEDB } from '../../modules/xorf/src/modules/diamond/makedb/main.nf'
+include { DOWNLOAD_ESMFOLD_WEIGHTS } from '../../modules/xorf/src/modules/esmfold/main.nf'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -32,6 +33,12 @@ workflow XORF_RUN {
     main:
         // Optional take arg: callers omitting it land on the first-pass location.
         def xorf_out_dir = "${params.output_dir}/09_polish/${out_subdir ?: 'xorf'}"
+
+        // Bridge: the vendored BLAST module reads global params.esm for its HF env
+        // exports, but xasm exposes xorf_esm. Mirror the flag so the env exports
+        // and the --esm ext.args flag (nextflow.config) always agree. Idempotent
+        // across both XORF_RUN invocations.
+        params.esm = params.xorf_esm ?: false
         /*
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             SAMBA WEIGHTS
@@ -50,6 +57,35 @@ workflow XORF_RUN {
               ).map { url -> [ [id : url.tokenize('/')[-1]], url ] }
             )
             ch_samba_weights = WGET_SAMBA_WEIGHTS.out.outfile
+        }
+
+        /*
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            ESMFOLD WEIGHTS
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        */
+
+        // Mirrors the standalone xorf ESM weights preparation (xorf src/main.nf).
+        // The channel carries a bare path: the HF hub cache dir when ESM is on, a
+        // dummy file otherwise (BLAST stages it via `each`, so it must not be empty).
+        // ponytail: downloaded once per XORF_RUN invocation (same as samba weights);
+        // hoist to POLISH if twopass+ESM double downloads ever matter.
+        ch_esm_weights = Channel.empty()
+        ch_esm_versions = Channel.empty()
+        if (params.xorf_esm) {
+            if (params.xorf_esmfold_local_weights) {
+                ch_esm_weights = Channel.value(
+                  file(params.xorf_esmfold_local_weights, checkIfExists: true)
+                )
+            } else {
+                DOWNLOAD_ESMFOLD_WEIGHTS(
+                  file("${projectDir}/modules/xorf/modules/orf/src/esmfold2_fast.py", checkIfExists: true)
+                )
+                ch_esm_weights = DOWNLOAD_ESMFOLD_WEIGHTS.out.cache
+                ch_esm_versions = DOWNLOAD_ESMFOLD_WEIGHTS.out.versions
+            }
+        } else {
+            ch_esm_weights = Channel.value(file("${projectDir}/params.json"))
         }
 
         /*
@@ -130,6 +166,7 @@ workflow XORF_RUN {
             xorf_out_dir,
             params.xorf_chunk_size ?: 20,
             ch_samba_weights,
+            ch_esm_weights,
             params.xorf_predict_keep_raw,
             params.xorf_selenocysteine_sites,                          
             params.xorf_skip_netstart,
@@ -137,7 +174,7 @@ workflow XORF_RUN {
             params.xorf_do_polishing,
             params.xorf_skip_joined_concat,
             false, null, null,             // run_only_on / run_only_mode / run_only_target — masking not ported
-            ch_database_versions
+            ch_database_versions.mix(ch_esm_versions)
         )
 
     emit:
