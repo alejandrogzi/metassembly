@@ -86,7 +86,7 @@ workflow POLISH_TWOPASS {
                 tuple(hq_meta, bed, iic)
             }
 
-        // NOTE: --toga is the reference intron source. First pass uses the
+        // NOTE: --reference is the reference intron source. First pass uses the
         // annotation alone. Second pass unions the annotation with the ORF
         // models so an intron is supported if either source has it (novel
         // ORF-supported splice sites stay categorized; annotation-supported
@@ -247,7 +247,7 @@ workflow POLISH {
 
         // INFO: every iso-* consumer below reads ONE reference annotation. When ANNEVO
         // provides a second one, both are collapsed into a single coordinate-sorted
-        // bed here so the modules keep staging a single --toga/--ref path.
+        // bed here so the modules keep staging a single --reference/--ref path.
         // ponytail: guarded so runs without ANNEVO stay bit-identical to before.
         if (params.annevo_annotation || params.annevo_predict) {
             ch_reference_unsorted = annotation
