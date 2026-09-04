@@ -143,6 +143,8 @@ separate directories under `test_results/`.
 | `--repeats` | `.bed` / `.gff` / `.gtf` | recommended | Repeats annotation, used to mask repeat-derived artifacts during intron classification. |
 | `--annevo_annotation` | ANNEVO `.gff3` (or GTF/GFF/BED) | no | A second, *ab initio* gene model, merged with `--annotation` for polishing. See [4.10a](#410a-annevo-annotation-optional). |
 | `--annevo_predict` | flag | no | Run ANNEVO on the genome instead of supplying a file. Requires `--annevo_lineage`. |
+| `--tiberius_annotation` | TIBERIUS `.gff3` (or GTF/GFF/BED) | no | A third, *ab initio* gene model, merged with `--annotation` for polishing. See [4.10b](#410b-tiberius-annotation-optional). |
+| `--tiberius_predict` | flag | no | Run TIBERIUS on the genome. Requires `--tiberius_model_cfg`. May be combined with `--tiberius_annotation`. |
 | `--output_dir` | path | **yes** (defaults to `./results`) | Where results go. |
 | `--prefix` | string | no | Prefix for output file names (e.g. `hg38` → `hg38.gtf`). If unset, `metassembly` is used. |
 
@@ -416,6 +418,41 @@ Two ways to supply it:
 > for `.bed` input). The merged reference itself lives in the work directory
 > (`<prefix>.reference.sorted.bed`).
 
+### 4.10b TIBERIUS annotation (optional)
+
+TIBERIUS works exactly like ANNEVO above — a further *ab initio* gene model that
+POLISH merges with the reference annotation into the single coordinate-sorted
+BED fed to `iso-orphan`, `iso-fusion` and `iso-classify` — with one difference:
+the two TIBERIUS sources may be **combined**. ANNEVO and TIBERIUS may also be
+active at the same time; every active source contributes its BED to the merge.
+
+Two ways to supply it (both at once is allowed):
+
+- `--tiberius_annotation FILE` — a TIBERIUS GTF/GFF3 (or any GTF/GFF/BED) you
+  already have. Converted to BED12 with `gxf2bed`.
+- `--tiberius_predict` — run TIBERIUS on the genome and use its output. Requires
+  `--tiberius_model_cfg` (a Hiller alias from `/opt/tiberius/models.tsv`, e.g.
+  `mammalia_nosoftmasking_v2`). TIBERIUS needs a container profile
+  (`docker`/`apptainer`/`singularity`); like ANNEVO it is not available with
+  `-profile conda`.
+
+| Parameter | Default | What it does |
+|-----------|---------|--------------|
+| `tiberius_annotation` | `null` | Precomputed TIBERIUS annotation (`.bed`/`.gtf`/`.gff`/`.gff3`, gzipped input is not supported). May be combined with `tiberius_predict`. |
+| `tiberius_predict` | `false` | Run TIBERIUS on the genome and use the prediction as third annotation. |
+| `tiberius_model_cfg` | `null` | TIBERIUS model alias from `/opt/tiberius/models.tsv`. **Required** with `tiberius_predict`. |
+| `tiberius_scatter` | `chromosome` | How the genome is split: `none`, `chromosome` (one task per sequence), `weighted` (length-balanced bins). |
+| `tiberius_bins` | `8` | Number of bins for `--tiberius_scatter weighted`. |
+| `tiberius_batch_size` | `null` | Batch size forwarded as TIBERIUS `--batch_size`. |
+| `tiberius_seq_len` | `null` | Sequence length forwarded as TIBERIUS `--seq_len`. |
+| `tiberius_protseq` | `false` | Also emit the TIBERIUS protein FASTA (`*.prot`). |
+| `tiberius_codingseq` | `false` | Also emit the TIBERIUS coding-sequence FASTA (`*.cds`). |
+| `tiberius_extra_args` | `''` | Extra args passed through to `tiberius.py`. |
+
+> TIBERIUS output is published under `08_tiberius`: the merged `*.gtf`/`*.gff3`
+> (plus `*.prot`/`*.cds` when requested) and the BED12(s) POLISH merges into the
+> reference (passthrough for `.bed` input).
+
 ### 4.11 BigBed conversion
 
 The final transcripts are published as BED files. If you want UCSC
@@ -563,6 +600,9 @@ results/
 ├── 08_gxf2bed/                BED versions of the annotation + assembly (*bed)
 ├── 08_annevo/                 ANNEVO annotation (*annevo.gff3 + *.bed),
 │                              only when an ANNEVO source is given
+├── 08_tiberius/               TIBERIUS annotation (*.gtf/*.gff3 + *.bed,
+│                              plus *.prot/*.cds when requested),
+│                              only when a TIBERIUS source is given
 ├── 09_polish/
 │   ├── fusions/               fusion candidate transcripts (*bed)
 │   ├── orphans/               iso-orphan classification (*bed, *tsv)

@@ -6,14 +6,18 @@ mode=${2:-run}
 engine=${TEST_ENGINE:-docker}
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 
-profiles=(test test-sb test-tm test-rustar test-bqc-star test-annevo)
+profiles=(test test-sb test-tm test-rustar test-bqc-star test-annevo test-tiberius)
 
 # "<nextflow -profile>|<extra CLI args>". test-annevo reuses the `test` profile and
 # only overrides what the ANNEVO path needs, so the two can never drift apart.
+# test-tiberius does the same for the TIBERIUS path.
 resolve() {
   case "$1" in
     test-annevo)
       echo "test|--annevo_annotation $root/assets/test/test_data/e2e/annevo.gff3 --output_dir $root/test_results/annevo"
+      ;;
+    test-tiberius)
+      echo "test|--tiberius_annotation $root/assets/test/test_data/e2e/tiberius.gff3 --output_dir $root/test_results/tiberius"
       ;;
     *) echo "$1|" ;;
   esac

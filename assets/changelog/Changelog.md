@@ -61,11 +61,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.1.11] - 2026-09-04
 
 ### Added
 
 - Optional CPU ESMFold2-Fast pLDDT scores in XORF BLAST via `--xorf_esm` (requires `--xorf_call_orfs`; off by default). Weights are downloaded once per XORF run unless `--xorf_esmfold_local_weights` points at a Hugging Face hub cache. Bumped the `modules/xorf` submodule to upstream v0.1.0.
+- Optional TIBERIUS annotation as a further gene model for polishing, wired like ANNEVO. `--tiberius_annotation <file>` takes a ready-made TIBERIUS GTF/GFF3 (or GTF/GFF/BED); `--tiberius_predict` runs TIBERIUS on the genome instead (requires `--tiberius_model_cfg`, a Hiller alias from `/opt/tiberius/models.tsv`). Unlike ANNEVO the two flags may be combined, and TIBERIUS may run alongside ANNEVO — every active source contributes a BED. The TIBERIUS subworkflow and its predict/merge modules are vendored from `hillerlab/core`.
+- `POLISH` now merges up to three BED12s (reference + ANNEVO + TIBERIUS, the latter carrying 0–2 elements) into the single coordinate-sorted `<prefix>.reference.sorted.bed` fed to `iso-orphan` (`--ref`), `iso-fusion` (`--ref`), `iso-classify` (`--toga`) and the two-pass `--toga` union. The merge stays guarded: runs without ANNEVO/TIBERIUS hand the annotation channel through untouched and stay bit-identical to before.
+- `test-tiberius` e2e profile: reuses the `test` profile with `--tiberius_annotation <fixture>` and a separate output dir, and asserts the conversion + merge tasks ran while prediction did not.
+
+### Changed
+
+- Version bumped to `0.1.11` in the pipeline manifest.
+
+### Notes
+
+- The TIBERIUS branch is container-only (`ghcr.io/hillerlab/tiberius:latest`): no conda environment is shipped, so `-profile conda` cannot run `--tiberius_predict`. The image tag floats — pin it if a run must be bit-reproducible.
 
 ---
 

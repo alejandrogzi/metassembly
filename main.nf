@@ -73,6 +73,23 @@ if (params.help) {
         --annevo_bins         INT       Number of bins for --annevo_scatter weighted [default: 8]
         --annevo_overlap_pred BOOLEAN   Allow overlapping gene predictions [default: lineage-specific]
 
+    Optional parameters (TIBERIUS annotation):
+        --tiberius_annotation   PATH      Precomputed TIBERIUS annotation (.bed/.gtf/.gff/.gff3); merged with
+                                          the reference annotation and used by iso-orphan, iso-fusion and
+                                          iso-classify [default: null]
+        --tiberius_predict      BOOLEAN   Run TIBERIUS on the genome and use its output as third annotation.
+                                          May be combined with --tiberius_annotation [default: false]
+        --tiberius_model_cfg    STRING    TIBERIUS model alias from /opt/tiberius/models.tsv
+                                          [required with --tiberius_predict]
+        --tiberius_scatter      STRING    TIBERIUS scatter mode [options: none, chromosome, weighted]
+                                          [default: chromosome]
+        --tiberius_bins         INT       Number of bins for --tiberius_scatter weighted [default: 8]
+        --tiberius_batch_size   INT       TIBERIUS --batch_size [default: null]
+        --tiberius_seq_len      INT       TIBERIUS --seq_len [default: null]
+        --tiberius_protseq      BOOLEAN   Also emit TIBERIUS protein FASTA [default: false]
+        --tiberius_codingseq    BOOLEAN   Also emit TIBERIUS coding-sequence FASTA [default: false]
+        --tiberius_extra_args   STRING    Extra args passed through to tiberius.py [default: '']
+
     Optional parameters (CBQ reads):
         --aligner                          STRING    Aligner [options: STAR, ruSTAR] [default: STAR]
                                                      STAR reads fastq only (CBQ is decoded after deacon);
@@ -109,6 +126,7 @@ if (params.help) {
 include { METASSEMBLE } from './subworkflows/metassembly/main'
 include { POLISH } from './subworkflows/polish/main'
 include { ANNEVO_ANNOTATION } from './subworkflows/annevo/main'
+include { TIBERIUS_ANNOTATION } from './subworkflows/tiberius/main'
 include { EMAIL_RESULTS } from './modules/custom/email/main'
 include { TWOBIT_TO_FA } from './modules/custom/ucsc/twobittofa/main'
 include { CHROMSIZE } from './modules/custom/chromsize/main'
@@ -152,6 +170,38 @@ def validateAnnevo() {
         } else if (!(source.name ==~ /.*\.(bed|gtf|gff|gff3)$/)) {
             errors << "  --annevo_annotation must be .bed/.gtf/.gff/.gff3 (gzip is not supported)"
         }
+    }
+
+    return errors
+}
+
+//
+// TIBERIUS annotation options. Shared by every entry point that reaches POLISH.
+// Unlike ANNEVO, --tiberius_annotation and --tiberius_predict may be combined.
+//
+def validateTiberius() {
+    def errors = []
+    def scatter_modes = ['none', 'chromosome', 'weighted']
+
+    if (params.tiberius_predict && !params.tiberius_model_cfg) {
+        errors << "  --tiberius_predict requires --tiberius_model_cfg (hiller alias from /opt/tiberius/models.tsv)"
+    }
+
+    if (params.tiberius_annotation) {
+        def source = file(params.tiberius_annotation)
+        if (!source.exists()) {
+            errors << "  --tiberius_annotation '${params.tiberius_annotation}' does not exist"
+        } else if (!(source.name ==~ /.*\.(bed|gtf|gff|gff3)$/)) {
+            errors << "  --tiberius_annotation must be .bed/.gtf/.gff/.gff3 (gzip is not supported)"
+        }
+    }
+
+    if (!(params.tiberius_scatter in scatter_modes)) {
+        errors << "  --tiberius_scatter must be one of: ${scatter_modes.join(', ')} (got '${params.tiberius_scatter}')"
+    }
+
+    if (params.tiberius_scatter == 'weighted' && params.tiberius_bins != null && (params.tiberius_bins as int) < 1) {
+        errors << "  --tiberius_scatter weighted requires --tiberius_bins >= 1"
     }
 
     return errors
@@ -218,6 +268,7 @@ def validateRun() {
     }
 
     errors += validateAnnevo()
+    errors += validateTiberius()
     errors += validateXorf()
 
     if (errors) {
@@ -237,6 +288,7 @@ def validateFromPolishing() {
     }
 
     errors += validateAnnevo()
+    errors += validateTiberius()
     errors += validateXorf()
 
     if (errors) {
@@ -296,6 +348,7 @@ workflow FULL_RUN {
       Genome    : ${params.genome}
       Annotation: ${params.annotation}
       ANNEVO    : ${params.annevo_annotation ?: (params.annevo_predict ? "predict (${params.annevo_lineage})" : 'off')}
+      TIBERIUS  : ${params.tiberius_annotation && params.tiberius_predict ? "file + predict (${params.tiberius_model_cfg})" : (params.tiberius_annotation ?: (params.tiberius_predict ? "predict (${params.tiberius_model_cfg})" : 'off'))}
       Outdir    : ${params.output_dir}
       Prefix    : ${params.prefix}
       Profile   : ${workflow.profile}
@@ -321,14 +374,16 @@ workflow FULL_RUN {
 
     if (!params.skip_assembly) {
         // NOTE: METASSEMBLE.out.genome is emitted as soon as the 2bit/gz conversion
-        // finishes, so ANNEVO runs in parallel with alignment + assembly.
+        // finishes, so ANNEVO and TIBERIUS run in parallel with alignment + assembly.
         ANNEVO_ANNOTATION(METASSEMBLE.out.genome)
+        TIBERIUS_ANNOTATION(METASSEMBLE.out.genome)
 
         POLISH (
             METASSEMBLE.out.metassembly,
             METASSEMBLE.out.genome,
             METASSEMBLE.out.annotation_bed,
             ANNEVO_ANNOTATION.out.bed,
+            TIBERIUS_ANNOTATION.out.bed,
             params.repeats,
             params.splice_scores_dir,
             params.do_twopass_polish,
@@ -451,6 +506,7 @@ workflow FROM_POLISHING {
     }
 
     ANNEVO_ANNOTATION(ch_fasta)
+    TIBERIUS_ANNOTATION(ch_fasta)
 
     POLISH (
         Channel.fromPath(params.polish_path, checkIfExists: true)
@@ -458,6 +514,7 @@ workflow FROM_POLISHING {
         ch_fasta,
         ch_bed,
         ANNEVO_ANNOTATION.out.bed,
+        TIBERIUS_ANNOTATION.out.bed,
         params.repeats,
         params.splice_scores_dir,
         params.do_twopass_polish,

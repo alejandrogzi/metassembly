@@ -64,6 +64,18 @@
     "annevo_bins":        8,
     "annevo_overlap_pred": null,
 
+    "//5ab": "── TIBERIUS annotation [optional] ────────────────────────────────────────",
+    "tiberius_annotation":   null,
+    "tiberius_predict":     false,
+    "tiberius_model_cfg":   null,
+    "tiberius_scatter":     "chromosome",
+    "tiberius_bins":        8,
+    "tiberius_batch_size":  null,
+    "tiberius_seq_len":     null,
+    "tiberius_protseq":     false,
+    "tiberius_codingseq":   false,
+    "tiberius_extra_args":  "",
+
     "//5b": "── ORF calling [optional] ────────────────────────────────────────────────",
     "xorf_call_orfs":                         true,
     "xorf_esm":                               false,

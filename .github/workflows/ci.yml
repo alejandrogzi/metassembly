@@ -51,3 +51,7 @@ jobs:
       - name: Run ANNEVO annotation end-to-end smoke test
         timeout-minutes: 30
         run: assets/ci/e2e/run.sh test-annevo
+
+      - name: Run TIBERIUS annotation end-to-end smoke test
+        timeout-minutes: 30
+        run: assets/ci/e2e/run.sh test-tiberius
