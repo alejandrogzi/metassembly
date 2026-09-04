@@ -56,6 +56,8 @@ if (params.help) {
         --polish_path         PATH      Path to polished assembly [required if --from polish]
         --do_twopass_polish   BOOLEAN   Re-review retention discards with --ignore-utr [default: false]
         --xorf_call_orfs      BOOLEAN   Run XORF ORF calling on first-pass HQ transcripts [default: false]
+        --xorf_esm            BOOLEAN   Add CPU ESMFold2-Fast pLDDT scores to BLAST [default: false]
+        --xorf_esmfold_local_weights PATH Local Hugging Face hub cache (ESMFold2-Fast + ESMC-6B); skips download [default: null]
         --xorf_custom_database PATH     Custom protein database for ORF calling (.dmnd/.dmnd.gz replaces the default; .fa/.fasta appended to SwissProt) [default: null; rest of XORF options in params.json]
 
     Optional parameters (ANNEVO annotation):
@@ -155,6 +157,24 @@ def validateAnnevo() {
     return errors
 }
 
+//
+// XORF ESM options. Mirrors the standalone xorf validation for local weights.
+//
+def validateXorf() {
+    def errors = []
+
+    if (params.xorf_esm && params.xorf_esmfold_local_weights) {
+        def weights = file(params.xorf_esmfold_local_weights)
+        if (!weights.exists()) {
+            errors << "  --xorf_esmfold_local_weights does not exist: '${params.xorf_esmfold_local_weights}'"
+        } else if (!file("${weights}/models--biohub--ESMFold2-Fast").exists() || !file("${weights}/models--biohub--ESMC-6B").exists()) {
+            errors << "  --xorf_esmfold_local_weights is not a Hugging Face hub cache (need models--biohub--ESMFold2-Fast and models--biohub--ESMC-6B)"
+        }
+    }
+
+    return errors
+}
+
 def validateRun() {
     def errors = []
     if (!params.input_dir)   errors << "  --input_dir is required"
@@ -198,6 +218,7 @@ def validateRun() {
     }
 
     errors += validateAnnevo()
+    errors += validateXorf()
 
     if (errors) {
         log.error "Parameter validation failed:\n${errors.join('\n')}"
@@ -216,6 +237,7 @@ def validateFromPolishing() {
     }
 
     errors += validateAnnevo()
+    errors += validateXorf()
 
     if (errors) {
         log.error "Parameter validation failed:\n${errors.join('\n')}"

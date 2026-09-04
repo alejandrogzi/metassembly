@@ -66,6 +66,8 @@
 
     "//5b": "── ORF calling [optional] ────────────────────────────────────────────────",
     "xorf_call_orfs":                         true,
+    "xorf_esm":                               false,
+    "xorf_esmfold_local_weights":             null,
     "xorf_selenocysteine_sites":              null,
     "xorf_custom_database":                   null,
     "xorf_chunk_size":                        20,

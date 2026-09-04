@@ -61,6 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Optional CPU ESMFold2-Fast pLDDT scores in XORF BLAST via `--xorf_esm` (requires `--xorf_call_orfs`; off by default). Weights are downloaded once per XORF run unless `--xorf_esmfold_local_weights` points at a Hugging Face hub cache. Bumped the `modules/xorf` submodule to upstream v0.1.0.
+
+---
+
 ## [0.1.10] - 2026-09-04
 
 ### Fixed
