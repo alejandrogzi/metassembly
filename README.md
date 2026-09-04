@@ -162,6 +162,9 @@ results/
 ├── 08_gxf2bed/                BED versions of the annotation + assembly (*bed)
 ├── 08_annevo/                 ANNEVO annotation (*annevo.gff3 + *.bed),
 │                              only when an ANNEVO source is given
+├── 08_tiberius/               TIBERIUS annotation (*.gtf/*.gff3 + *.bed,
+│                              plus *.prot/*.cds when requested),
+│                              only when a TIBERIUS source is given
 ├── 09_polish/
 │   ├── fusions/               fusion candidate transcripts (*bed)
 │   ├── orphans/               iso-orphan classification (*bed, *tsv)

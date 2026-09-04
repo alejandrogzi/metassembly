@@ -48,6 +48,12 @@
       "tasks": ["GXF2BED_ANNEVO", "SORT_BED_REFERENCE", "ISOTOOLS_FUSION", "ISOTOOLS_ORPHAN", "ISOTOOLS_CLASSIFY_INTRON", "ISOTOOLS_NMD"],
       "forbidden_tasks": ["ANNEVO_PREDICTION", "ANNEVO_DECODING", "ANNEVO_GATHER", "FXSPLIT"]
     },
+    "test-tiberius": {
+      "output": "test_results/tiberius",
+      "smoke": true,
+      "tasks": ["GXF2BED_TIBERIUS_FILE", "SORT_BED_REFERENCE", "ISOTOOLS_FUSION", "ISOTOOLS_ORPHAN", "ISOTOOLS_CLASSIFY_INTRON", "ISOTOOLS_NMD"],
+      "forbidden_tasks": ["GXF2BED_TIBERIUS_PRED", "TIBERIUS_PREDICT", "TIBERIUS_MERGE", "TIBERIUS_MANIFEST", "TIBERIUS_CAT", "FXSPLIT"]
+    },
     "test-bqc-star": {
       "output": "test_results/bqc-star",
       "metassembly": "06_beaver/test.gtf",

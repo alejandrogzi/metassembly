@@ -236,6 +236,7 @@ workflow POLISH {
         genome                    // channel: [ fasta ]
         annotation                // channel: [ meta, bed ]
         annevo                    // channel: [ bed ] ANNEVO annotation, 0 or 1 element
+        tiberius                  // channel: [ bed ] TIBERIUS annotation, 0, 1 or 2 elements
         repeats                   // path: /path/to/repeats.{bed/gff/gtf}
         splice_scores_dir         // path: /path/to/splice/scores/dir
         do_twopass_polish         // val: boolean
@@ -246,13 +247,15 @@ workflow POLISH {
         ch_genome = genome.map { genome -> [ [id:genome.baseName], genome ] }
 
         // INFO: every iso-* consumer below reads ONE reference annotation. When ANNEVO
-        // provides a second one, both are collapsed into a single coordinate-sorted
-        // bed here so the modules keep staging a single --reference/--ref path.
-        // ponytail: guarded so runs without ANNEVO stay bit-identical to before.
-        if (params.annevo_annotation || params.annevo_predict) {
+        // or TIBERIUS provide extra ones, all are collapsed into a single
+        // coordinate-sorted bed here so the modules keep staging a single
+        // --reference/--ref path.
+        // ponytail: guarded so runs without ANNEVO/TIBERIUS stay bit-identical to before.
+        if (params.annevo_annotation || params.annevo_predict || params.tiberius_annotation || params.tiberius_predict) {
             ch_reference_unsorted = annotation
                 .map { _meta, bed -> bed }
                 .concat(annevo)
+                .concat(tiberius)
                 .collectFile(
                     name: "${prefix ?: 'polish'}.reference.bed",
                     newLine: false

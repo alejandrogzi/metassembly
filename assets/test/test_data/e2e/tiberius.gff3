@@ -1,0 +1,26 @@
+##gff-version 3
+# This output was generated with TIBERIUS (ab initio gene prediction).
+# TIBERIUS is an ab initio gene structure predictor for eukaryotic genomes.
+# Citation: TIBERIUS, https://github.com/hillerlab/tiberius
+#
+# End-to-end fixture: two TIBERIUS genes that overlap the annotated test loci on
+# chrTestA/chrTestB with deliberately shifted exon boundaries, so the merged
+# reference POLISH builds carries introns the reference annotation does not.
+# ----- prediction on sequence number 1 (name = chrTestA) -----
+chrTestA	TIBERIUS	gene	350	5450	0.81	+	.	ID=tiberius_gene_A
+chrTestA	TIBERIUS	mRNA	350	5450	0.81	+	.	ID=tiberius_tx_A;Parent=tiberius_gene_A
+chrTestA	TIBERIUS	exon	350	700	.	+	.	ID=tiberius_tx_A.exon1;Parent=tiberius_tx_A
+chrTestA	TIBERIUS	CDS	350	700	.	+	0	Parent=tiberius_tx_A
+chrTestA	TIBERIUS	exon	950	2400	.	+	.	ID=tiberius_tx_A.exon2;Parent=tiberius_tx_A
+chrTestA	TIBERIUS	CDS	950	2400	.	+	2	Parent=tiberius_tx_A
+chrTestA	TIBERIUS	exon	2760	5450	.	+	.	ID=tiberius_tx_A.exon3;Parent=tiberius_tx_A
+chrTestA	TIBERIUS	CDS	2760	5450	.	+	1	Parent=tiberius_tx_A
+# ----- prediction on sequence number 2 (name = chrTestB) -----
+chrTestB	TIBERIUS	gene	400	3075	0.77	+	.	ID=tiberius_gene_B
+chrTestB	TIBERIUS	mRNA	400	3075	0.77	+	.	ID=tiberius_tx_B;Parent=tiberius_tx_B
+chrTestB	TIBERIUS	exon	400	758	.	+	.	ID=tiberius_tx_B.exon1;Parent=tiberius_tx_B
+chrTestB	TIBERIUS	CDS	400	758	.	+	0	Parent=tiberius_tx_B
+chrTestB	TIBERIUS	exon	1350	1650	.	+	.	ID=tiberius_tx_B.exon2;Parent=tiberius_tx_B
+chrTestB	TIBERIUS	CDS	1350	1650	.	+	1	Parent=tiberius_tx_B
+chrTestB	TIBERIUS	exon	2590	3075	.	+	.	ID=tiberius_tx_B.exon3;Parent=tiberius_tx_B
+chrTestB	TIBERIUS	CDS	2590	3075	.	+	2	Parent=tiberius_tx_B
