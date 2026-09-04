@@ -570,6 +570,7 @@ results/
 │   ├── iic/                   intronIC spliceosome predictions (*tsv)
 │   ├── classify/              intron classifications (*tsv)
 │   ├── retentions/            retention descriptors
+│   ├── xorf/                  ORF calls and truncation/duplicate discards (*bed)
 │   └── twopass/               second-pass re-classification (only with
 │                              --do_twopass_polish)
 ├── 10_final/                  ← FINAL transcripts
@@ -577,7 +578,11 @@ results/
 │   ├── retentions/            transcripts discarded as retained introns
 │   ├── strong_rts/            read-through discards (strong signal)
 │   ├── weak_rts/              read-through discards (weak signal)
-│   └── artifacts/             other artifact discards
+│   ├── artifacts/             other artifact discards
+│   ├── truncations/           XORF 3′UTR truncation discards (only when present)
+│   ├── nmd/                   NMD-positive transcripts (only when present)
+│   ├── scraps/                orphan/scrap transcripts
+│   └── fusions/               fusion transcripts
 ├── 11_bbs/                    ← FINAL tracks (BigBed, if not skipped)
 │   └── <prefix>.bb            browser-ready versions of all 10_final BEDs
 ├── samplesheets/

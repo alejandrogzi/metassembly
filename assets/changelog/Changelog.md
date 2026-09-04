@@ -61,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.10] - 2026-09-04
+
+### Fixed
+
+- Documented that `10_final/truncations/` and `10_final/nmd/` are only published when such discards exist: empty categories emit nothing through STRIP → collectFile → SORT_BED by design (verified the non-empty publish path end-to-end with the real selectors). Completed the `10_final/` tree in `usage.md` (`scraps/`, `fusions/`, conditional `truncations/`/`nmd/`) and marked the conditional dirs in the `README.md` tree.
+
+### Changed
+
+- Version bumped to `0.1.10` in the pipeline manifest.
+
+---
+
 ## [0.1.9] - 2026-09-04
 
 ### Added
