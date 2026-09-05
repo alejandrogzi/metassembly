@@ -43,6 +43,7 @@ process ISOTOOLS_FUSION {
         --ref $reference \\
         --query $queries \\
         --threads ${task.cpus} \\
+        --fuzzy-exclusion \\
         --prefix ${prefix}
 
     if [ -f ${prefix}/fusions.fakes.bed ]; then
