@@ -31,6 +31,7 @@ process XLOCI_INTRON {
         -r $reads \\
         --unmask \\
         -t $task.cpus \\
+        --ignore-errors \\
         --prefix ${prefix}
 
     cat <<-END_VERSIONS > versions.yml
