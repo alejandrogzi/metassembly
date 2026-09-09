@@ -26,9 +26,10 @@ process RENAME_FINAL_TRANSCRIPTS {
         'ghcr.io/alejandrogzi/py-packbed:latest' }"
     // The image entrypoints `python3`, which would swallow Nextflow's
     // `/bin/bash -ue` wrapper (bash then tries to run /bin/bash as a script).
-    // `/usr/bin/env` re-execs the wrapper; apptainer/singularity ignore the OCI
-    // entrypoint on exec, so they need no override.
-    containerOptions "${ workflow.containerEngine == 'singularity' ? '' : '--entrypoint /usr/bin/env' }"
+    // `/usr/bin/env` re-execs the wrapper. Only docker/podman honor the OCI
+    // entrypoint flag; apptainer/singularity ignore the entrypoint on exec and
+    // shifter/charliecloud reject the flag, so they get no override.
+    containerOptions "${ workflow.containerEngine in ['docker', 'podman'] ? '--entrypoint /usr/bin/env' : '' }"
 
     input:
     tuple val(meta), path(bed)
